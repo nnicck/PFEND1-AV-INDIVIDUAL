@@ -1,49 +1,68 @@
 import Image from "next/image";
 import styles from "./page.module.css";
+import CardsResumo from "@/components/CardsResumo";
+import BarraNavegacao from "@/components/BarraNavegacao";
 
 export default function Home() {
   return (
     <>
-    <header>
-    <nav className="navbar navbar-expand-lg d-flex align-items-center justify-content-around gap-5 py-3"  style={{ backgroundColor: "#1E4D8F" }}>
-    <a className="navbar-brand text-white" href="#">
-      <div className="d-flex align-items-center gap-1">
-        <span>Gestor API</span>
-        <img src="/logo_icon.png" style={{ width: "25px" }} />
+    <div className="d-flex flex-row">
+
+    
+    <BarraNavegacao></BarraNavegacao>
+    <main className="flex-grow-1">
+    <div className="d-flex justify-content-around align-items-center mt-5">
+      <div className="d-flex flex-column align-items-center justify-content-center">
+        <h2 className="text-black text-left">Olá! Seja bem-vindo!</h2>
+        <h5 className="text-secondary">Aqui está um resumo dos EPIs e movimentação do sistema</h5>
       </div>
-    </a>
-
-    <div className="navbar-nav d-flex flex-row align-items-center gap-5 fs-5">
-      <a className="nav-link text-white" href="">início</a>
-
-      <a className="nav-link text-white" href="">equipamentos</a>
-
-      <button type="button" className="btn btn-primary">+ Criar um novo</button>
+      <button type="button" className="btn btn-primary">+ Registrar novo empréstimo</button>
     </div>
-    </nav>
-    </header>
-    <div className="d-flex flex-column align-items-center justify-content-around mt-5">
-      <h2 className="text-black">Gerenciador de Equipamentos de Proteção Individual</h2>
-      <h5 className="text-secondary">Controle e acompanhamento dos EPIs cadastrados.</h5>
-    </div>
-    <div className="container mt-5">
-      <div className="card" style={{ width: "25rem" }}>
-        <div className="card-body">
-          <h5 className="card-title">Card title</h5>
-          <h6 className="card-subtitle mb-2 text-body-secondary">Card subtitle</h6>
-          <p className="card-text">
-            Some quick example text to build on the card title and make up the bulk of
-            the card’s content.
-          </p>
-          <a href="#" className="card-link">
-            Card link
-          </a>
-          <a href="#" className="card-link">
-            Another link
-          </a>
+
+
+      <div className="container d-flex justify-content-between gap-2 mt-5">
+        <CardsResumo titEpi="Total de EPIs" qtdEpi="25" descEpi="cadastros no sistemas"></CardsResumo>
+        <CardsResumo titEpi="Disponível" qtdEpi="45" descEpi="itens disponível"></CardsResumo>
+        <CardsResumo titEpi="Empréstimos ativos" qtdEpi="55" descEpi="em andamento"></CardsResumo>
+        <CardsResumo titEpi="Devoluções atrasadas" qtdEpi="55" descEpi="requerem atenção"></CardsResumo>
+      </div>
+
+      {/* tabela */}
+
+      <div className="card shadow-sm border-0 rounded-3 mt-4">
+        <div className="card-header py-3">
+          <h5 className="mb-0">Empréstimos recentes</h5>
+        </div>
+
+        <div className="table-responsive">
+        <table className="table table-hover align-middle mb-0">
+          <thead className="table-light">
+            <tr>
+              <th>Data</th>
+              <th>Funcionário</th>
+              <th>Equipamento</th>
+              <th>Quantidade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>14/10/2026</td>
+              <td>João Silva</td>
+              <td>Capacete de segurança</td>
+              <td>1</td>
+              <td>
+               <span className="badge bg-success-subtle text-success">Em andamento</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
         </div>
       </div>
+    </main>
     </div>
+    
 
     
     </>
