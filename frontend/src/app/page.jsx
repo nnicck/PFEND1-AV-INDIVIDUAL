@@ -34,6 +34,26 @@ export default function Home() {
           <h5 className="mb-0">Empréstimos recentes</h5>
         </div>
 
+        <div className="card-body pt-2">
+
+        <div className="row g-3 justify-content-center align-items-center mb-4">
+        <div className="col-12 col-md-7">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Pesquisar por funcionário ou equipamento..."
+          />
+        </div>
+
+          <div className="col-12 col-md-3">
+            <select className="form-select" defaultValue="">
+              <option value="">Todos os status</option>
+              <option value="andamento">Em andamento</option>
+              <option value="devolvido">Devolvido</option>
+              <option value="atrasado">Atrasado</option>
+            </select>
+          </div>
+        </div>
         <div className="table-responsive">
         <table className="table table-hover align-middle mb-0">
           <thead className="table-light">
@@ -58,6 +78,7 @@ export default function Home() {
             </tr>
           </tbody>
         </table>
+        </div>
         </div>
       </div>
     </main>
