@@ -38,7 +38,7 @@ export default function BarraNavegacao() {
             href="/emprestimos"
             className="text-white text-decoration-none rounded p-3"
           >
-            Empréstimos
+            funcionários
           </a>
 
           <a

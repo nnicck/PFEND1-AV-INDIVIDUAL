@@ -28,59 +28,147 @@ export default function Home() {
       </div>
 
       {/* tabela */}
+      <div className="card border-0 rounded-3 mt-4 w-100 bg-transparent">
 
-      <div className="card shadow-sm border-0 rounded-3 mt-4">
-        <div className="card-header py-3">
-          <h5 className="mb-0">Empréstimos recentes</h5>
-        </div>
+  {/* Título */}
+  <div className="card-header py-3 px-4 bg-transparent border-0">
+    <h5 className="mb-0">Empréstimos recentes</h5>
+  </div>
 
-        <div className="card-body pt-2">
+  <div className="card-body p-0">
 
-        <div className="row g-3 justify-content-center align-items-center mb-4">
-        <div className="col-12 col-md-7">
+    {/* Filtros */}
+    <div className="px-4 pt-2 pb-4">
+      <div className="row g-3 align-items-end">
+
+        <div className="col-12 col-lg-4">
+          <label className="form-label">Pesquisar</label>
           <input
             type="text"
             className="form-control"
-            placeholder="Pesquisar por funcionário ou equipamento..."
+            placeholder="ID, funcionário ou equipamento..."
           />
         </div>
 
-          <div className="col-12 col-md-3">
-            <select className="form-select" defaultValue="">
-              <option value="">Todos os status</option>
-              <option value="andamento">Em andamento</option>
-              <option value="devolvido">Devolvido</option>
-              <option value="atrasado">Atrasado</option>
-            </select>
-          </div>
+        <div className="col-12 col-md-6 col-lg-2">
+          <label className="form-label">Data inicial</label>
+          <input
+            type="date"
+            className="form-control"
+          />
         </div>
-        <div className="table-responsive">
-        <table className="table table-hover align-middle mb-0">
-          <thead className="table-light">
-            <tr>
-              <th>Data</th>
-              <th>Funcionário</th>
-              <th>Equipamento</th>
-              <th>Quantidade</th>
-              <th>Status</th>
-            </tr>
-          </thead>
 
-          <tbody>
-            <tr>
-              <td>14/10/2026</td>
-              <td>João Silva</td>
-              <td>Capacete de segurança</td>
-              <td>1</td>
-              <td>
-               <span className="badge bg-success-subtle text-success">Em andamento</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="col-12 col-md-6 col-lg-2">
+          <label className="form-label">Data final</label>
+          <input
+            type="date"
+            className="form-control"
+          />
         </div>
+
+        <div className="col-12 col-lg-4">
+          <label className="form-label">Status</label>
+          <select className="form-select" defaultValue="">
+            <option value="">Todos os status</option>
+            <option value="andamento">Em andamento</option>
+            <option value="devolvido">Devolvido</option>
+            <option value="atrasado">Atrasado</option>
+          </select>
         </div>
+
       </div>
+    </div>
+
+    {/* Tabela */}
+    <div className="table-responsive w-100">
+      <table className="table align-middle mb-0 w-100">
+
+        <thead className="table-light">
+          <tr>
+            <th className="ps-4">ID</th>
+            <th>Data</th>
+            <th>Funcionário</th>
+            <th>Equipamento</th>
+            <th>Quantidade</th>
+            <th>Status</th>
+            <th className="text-center">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td className="ps-4 fw-semibold text-primary">EMP-001</td>
+            <td>14/10/2026</td>
+            <td>João Silva</td>
+            <td>Capacete de segurança</td>
+            <td>1</td>
+            <td>
+              <span className="badge bg-success-subtle text-success">
+                Em andamento
+              </span>
+            </td>
+            <td className="text-center">
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+              >
+                Detalhes
+              </button>
+            </td>
+          </tr>
+
+          <tr>
+            <td className="ps-4 fw-semibold text-primary">EMP-002</td>
+            <td>13/10/2026</td>
+            <td>Maria Santos</td>
+            <td>Luva de proteção</td>
+            <td>2</td>
+            <td>
+              <span className="badge bg-secondary-subtle text-secondary">
+                Devolvido
+              </span>
+            </td>
+            <td className="text-center">
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+              >
+                Detalhes
+              </button>
+            </td>
+          </tr>
+
+          <tr>
+            <td className="ps-4 fw-semibold text-primary">EMP-003</td>
+            <td>10/10/2026</td>
+            <td>Pedro Oliveira</td>
+            <td>Óculos de proteção</td>
+            <td>1</td>
+            <td>
+              <span className="badge bg-danger-subtle text-danger">
+                Atrasado
+              </span>
+            </td>
+            <td className="text-center">
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+              >
+                Detalhes
+              </button>
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+    </div>
+
+  </div>
+</div>
+      
+
+
+
     </main>
     </div>
     
