@@ -31,6 +31,8 @@ a {
   text-decoration: none;
 }
 
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
@@ -39,4 +41,10 @@ a {
 
 body{
   background-color: #f8f9fb;
+}
+
+.table th,
+.table td {
+  padding: 5px 30px;
+  vertical-align: middle;
 }

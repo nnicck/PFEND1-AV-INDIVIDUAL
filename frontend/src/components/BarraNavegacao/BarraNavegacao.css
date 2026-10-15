@@ -1,0 +1,18 @@
+/* Efeito hover nos links da barra */
+.link-navegacao {
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: background-color 0.3s ease;
+}
+
+.link-navegacao:hover {
+  background-color: #1769F6;
+  color: white;
+}
+
+/* Link da página atual */
+.link-ativo {
+  background-color: #1769F6;
+}

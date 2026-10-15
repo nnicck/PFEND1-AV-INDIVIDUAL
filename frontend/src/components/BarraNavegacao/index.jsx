@@ -1,3 +1,5 @@
+import Link from "next/link";
+import "./BarraNavegacao.css";
 export default function BarraNavegacao() {
   return (
     <header>
@@ -21,32 +23,21 @@ export default function BarraNavegacao() {
 
         {/* Links */}
         <div className="d-flex flex-column gap-2">
-          <a href="/" className="text-white text-decoration-none rounded p-3 fw-semibold"
-            style={{ backgroundColor: "#1769F6" }}
-          >
+          <Link href={"/"} className="text-white text-decoration-none rounded p-3 link-navegacao">
             Início
-          </a>
+          </Link>
 
-          <a
-            href="/equipamentos"
-            className="text-white text-decoration-none rounded p-3"
-          >
+          <Link href={"/equipamentos"} className="text-white text-decoration-none rounded p-3 link-navegacao">
             Equipamentos
-          </a>
+          </Link>
 
-          <a
-            href="/emprestimos"
-            className="text-white text-decoration-none rounded p-3"
-          >
+          <Link href={"/emprestimos"} className="text-white text-decoration-none rounded p-3 link-navegacao">
             funcionários
-          </a>
+          </Link>
 
-          <a
-            href="/devolucoes"
-            className="text-white text-decoration-none rounded p-3"
-          >
+          <Link href={"/devolucoes"} className="text-white text-decoration-none rounded p-3 link-navegacao">
             Devoluções
-          </a>
+          </Link>
 
         </div>
 
