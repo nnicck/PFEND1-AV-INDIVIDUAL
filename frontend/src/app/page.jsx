@@ -39,7 +39,7 @@ export default function Home() {
 
     {/* Filtros */}
     <div className="px-4 pt-2 pb-4">
-      <div className="row g-3 align-items-end">
+      <div className="row g-2 align-items-end">
 
         <div className="col-12 col-lg-4">
           <label className="form-label">Pesquisar</label>
@@ -81,87 +81,83 @@ export default function Home() {
 
     {/* Tabela */}
     <div className="table-responsive w-100">
-      <table className="table align-middle mb-0 w-100">
+  <table className="table align-middle mb-0 w-100">
 
-        <thead className="table-light">
-          <tr>
-            <th className="ps-4">ID</th>
-            <th>Data</th>
-            <th>Funcionário</th>
-            <th>Equipamento</th>
-            <th>Quantidade</th>
-            <th>Status</th>
-            <th className="text-center">Ações</th>
-          </tr>
-        </thead>
+    <thead className="table-light">
+      <tr>
+        <th className="ps-4">ID</th>
+        <th>Data</th>
+        <th>Funcionário</th>
+        <th>Equipamento</th>
+        <th>Status</th>
+        <th className="text-center">Ações</th>
+      </tr>
+    </thead>
 
-        <tbody>
-          <tr>
-            <td className="ps-4 fw-semibold text-primary">EMP-001</td>
-            <td>14/10/2026</td>
-            <td>João Silva</td>
-            <td>Capacete de segurança</td>
-            <td>1</td>
-            <td>
-              <span className="badge bg-success-subtle text-success">
-                Em andamento
-              </span>
-            </td>
-            <td className="text-center">
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-              >
-                Detalhes
-              </button>
-            </td>
-          </tr>
+    <tbody>
+      <tr>
+        <td className="ps-4 fw-semibold text-primary">EMP-001</td>
+        <td>14/10/2026</td>
+        <td>João Silva</td>
+        <td>Capacete de segurança</td>
+        <td>
+          <span className="badge bg-success-subtle text-success">
+            Em andamento
+          </span>
+        </td>
+        <td className="text-center">
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+          >
+            Detalhes
+          </button>
+        </td>
+      </tr>
 
-          <tr>
-            <td className="ps-4 fw-semibold text-primary">EMP-002</td>
-            <td>13/10/2026</td>
-            <td>Maria Santos</td>
-            <td>Luva de proteção</td>
-            <td>2</td>
-            <td>
-              <span className="badge bg-secondary-subtle text-secondary">
-                Devolvido
-              </span>
-            </td>
-            <td className="text-center">
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-              >
-                Detalhes
-              </button>
-            </td>
-          </tr>
+      <tr>
+        <td className="ps-4 fw-semibold text-primary">EMP-002</td>
+        <td>13/10/2026</td>
+        <td>Maria Santos</td>
+        <td>Luva de proteção</td>
+        <td>
+          <span className="badge bg-secondary-subtle text-secondary">
+            Devolvido
+          </span>
+        </td>
+        <td className="text-center">
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+          >
+            Detalhes
+          </button>
+        </td>
+      </tr>
 
-          <tr>
-            <td className="ps-4 fw-semibold text-primary">EMP-003</td>
-            <td>10/10/2026</td>
-            <td>Pedro Oliveira</td>
-            <td>Óculos de proteção</td>
-            <td>1</td>
-            <td>
-              <span className="badge bg-danger-subtle text-danger">
-                Atrasado
-              </span>
-            </td>
-            <td className="text-center">
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm"
-              >
-                Detalhes
-              </button>
-            </td>
-          </tr>
-        </tbody>
+      <tr>
+        <td className="ps-4 fw-semibold text-primary">EMP-003</td>
+        <td>10/10/2026</td>
+        <td>Pedro Oliveira</td>
+        <td>Óculos de proteção</td>
+        <td>
+          <span className="badge bg-danger-subtle text-danger">
+            Atrasado
+          </span>
+        </td>
+        <td className="text-center">
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+          >
+            Detalhes
+          </button>
+        </td>
+      </tr>
+    </tbody>
 
-      </table>
-    </div>
+  </table>
+</div>
 
   </div>
 </div>
