@@ -1,0 +1,9 @@
+# Ignorar pastas de dependências
+node_modules/
+
+# Ignorar arquivos de ambiente com senhas
+.env
+
+# Ignorar arquivos compilados ou de sistema
+*.log
+.DS_Store
