@@ -31,7 +31,7 @@ a {
   text-decoration: none;
 }
 
-@import "bootstrap-icons/font/bootstrap-icons.css";
+
 
 @media (prefers-color-scheme: dark) {
   html {

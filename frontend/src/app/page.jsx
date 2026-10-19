@@ -55,14 +55,6 @@ export default function Home() {
           />
         </div>
 
-        <div className="col-12 col-md-6 col-lg-2">
-          <label className="form-label">Data final</label>
-          <input
-            type="date"
-            className="form-control"
-          />
-        </div>
-
         <div className="col-12 col-lg-4">
           <label className="form-label">Status</label>
           <select className="form-select" defaultValue="">

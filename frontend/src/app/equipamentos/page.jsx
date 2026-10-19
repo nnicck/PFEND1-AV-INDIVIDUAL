@@ -77,7 +77,7 @@ export default function Equipamentos() {
             </div>
 
             <div className="text-secondary">
-                <button type="button" className="btn btn-primary">+ Registrar novo empréstimo</button>
+                <button type="button" className="btn btn-primary">+ Registrar novo equipamento</button>
             </div>
           </div>
         </section>
