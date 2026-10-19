@@ -1,15 +1,44 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
 import CardsResumo from "@/components/CardsResumo";
 import BarraNavegacao from "@/components/BarraNavegacao";
 import RegistroEmprestimo from "@/components/RegistroEmprestimo";
+import { useEffect, useState } from "react";
+ //guardar informações que podem mudar e atualizar a tela automaticamente quando essas informações mudam
 
 export default function Home() {
+  
+    //Empréstimo
+    const [emprestimos, setEmprestimos] = useState([]);
+    const [erro, setErro] = useState("");
+    useEffect(() => {
+        async function carregarEmprestimos() {
+            try {
+                const resposta = await fetch(
+                    "http://localhost:3001/api/emprestimos"
+                );
+
+                if (!resposta.ok) {
+                    throw new Error("Erro ao buscar empréstimos");
+                }
+
+                const resultado = await resposta.json();
+                
+                setEmprestimos(resultado.dados);
+            } catch (erro) {
+                console.error(erro);
+            }
+        }
+
+        carregarEmprestimos();
+    }, []);
+
+
+
   return (
     <>
     <div className="d-flex flex-row">
-
-    
     <BarraNavegacao></BarraNavegacao>
     <main className="flex-grow-1">
     <div className="d-flex justify-content-around align-items-center mt-5">
@@ -27,6 +56,8 @@ export default function Home() {
         <CardsResumo titEpi="Empréstimos ativos" qtdEpi="55" descEpi="em andamento"></CardsResumo>
         <CardsResumo titEpi="Devoluções atrasadas" qtdEpi="55" descEpi="requerem atenção"></CardsResumo>
       </div>
+
+      {erro && <p className="text-danger">{erro}</p>}
 
       {/* tabela */}
       <div className="card border-0 rounded-3 mt-4 w-100 bg-transparent">
@@ -81,15 +112,39 @@ export default function Home() {
             <th>Ações</th>
           </tr>
         </thead>
+
         <tbody>
-          <RegistroEmprestimo></RegistroEmprestimo>
-          <RegistroEmprestimo></RegistroEmprestimo>
-          <RegistroEmprestimo></RegistroEmprestimo>
-          <RegistroEmprestimo></RegistroEmprestimo>
-          <RegistroEmprestimo></RegistroEmprestimo>
-        </tbody>
+                    {emprestimos.map((emprestimo) => (
+                        <tr key={emprestimo.id}>
+                            <th scope="row" className="text-primary">
+                                {emprestimo.id}
+                            </th>
+
+                            <td>
+                                {new Date(
+                                    emprestimo.data_emprestimo
+                                ).toLocaleDateString("pt-BR", {
+                                    timeZone: "UTC",
+                                })}
+                            </td>
+
+                            <td>{emprestimo.funcionario_id}</td>
+                            <td>{emprestimo.equipamento_id}</td>
+                            <td>{emprestimo.status}</td>
+
+                            <td>
+                                <button className="btn btn-primary btn-sm">
+                                    Editar
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+
       </table>
     </div>
+
+    
 
   </div>
 </div>

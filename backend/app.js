@@ -1,5 +1,6 @@
 import express from "express";
 import { criarPool } from "./config/database.js";
+import cors from "cors";
 
 // Models
 import { criarEquipamentoModel } from "./models/EquipamentoModel.js";
@@ -70,11 +71,19 @@ app.get("/api/check", (req, res) => {
     });
 });
 
+app.use(cors({
+    origin: "http://localhost:3000"
+}));
+
+app.use(express.json());
+
 // Registrar as rotas
 app.use("/api/equipamentos", equipamentoRoutes);
 app.use("/api/funcionarios", funcionarioRoutes);
 app.use("/api/emprestimos", emprestimoRoutes);
 app.use("/api/devolucoes", devolucaoRoutes);
+
+
 
 // Rota não encontrada
 app.use((req, res) => {
@@ -91,3 +100,4 @@ app.use((erro, req, res, _next) => {
         erro: "Falha interna do servidor"
     });
 });
+
