@@ -6,51 +6,62 @@ import Link from "next/link";
 import BarraNavegacao from "@/components/BarraNavegacao";
 
 export default function NovoEquipamento() {
-    const router = useRouter();
+    const router = useRouter(); 
+    //Basicamente redirecionar para uma nova página, depois de uma ação acontecer (cadastro)
 
-    const [formulario, setFormulario] = useState({
-        nome: "",
-        categoria: "",
-        fabricante: "",
-        maximo_equipamentos: ""
-    });
+    // Guarda os valores digitados nos campos do formulário.
+    const [formulario, setFormulario] = useState({nome: "", categoria: "", maximo_equipamentos: ""});
 
+    // Guarda uma mensagem de erro e controla o estado do botão de cadastro.
     const [erro, setErro] = useState("");
     const [salvando, setSalvando] = useState(false);
 
+    // Atualiza somente o campo que o usuário alterou.
     function alterarCampo(e) {
+        //Name é o nome do campo do input e value é o valor desse campo
+        //e é o elemento que gerou esse evento (input)
         const { name, value } = e.target;
 
-        setFormulario((anterior) => ({
-            ...anterior,
-            [name]: value
-        }));
+        //Estado anterior do campo
+        setFormulario((anterior) => ({ ...anterior, [name]: value}));
     }
 
     async function cadastrarEquipamento(e) {
+        // Impede que o formulário recarregue a página ao ser enviado.
         e.preventDefault();
         setErro("");
 
+        // Verifica se todos os campos obrigatórios foram preenchidos.
         if (
             !formulario.nome.trim() ||
             !formulario.categoria.trim() ||
-            !formulario.fabricante.trim() ||
             formulario.maximo_equipamentos === ""
         ) {
             setErro("Preencha todos os campos.");
             return;
         }
 
-        const quantidadeMaxima = Number(formulario.maximo_equipamentos);
+        // Converte a quantidade digitada, que vem como texto, para número.
+        const quantidadeMaxima = Number(
+            formulario.maximo_equipamentos
+        );
 
-        if (!Number.isInteger(quantidadeMaxima) || quantidadeMaxima <= 0) {
-            setErro("A quantidade máxima deve ser um número inteiro maior que zero.");
+        // Aceita apenas números inteiros maiores que zero.
+        if (
+            !Number.isInteger(quantidadeMaxima) ||
+            quantidadeMaxima <= 0
+        ) {
+            setErro(
+                "A quantidade máxima deve ser um número inteiro maior que zero."
+            );
             return;
         }
 
         try {
+            // Desabilita o botão enquanto a requisição está sendo processada.
             setSalvando(true);
 
+            // Envia os dados do equipamento para a API cadastrar no banco.
             const resposta = await fetch(
                 "http://localhost:3001/api/equipamentos",
                 {
@@ -61,15 +72,18 @@ export default function NovoEquipamento() {
                     body: JSON.stringify({
                         nome: formulario.nome.trim(),
                         categoria: formulario.categoria.trim(),
-                        fabricante: formulario.fabricante.trim(),
                         maximo_equipamentos: quantidadeMaxima,
+
+                        // Inicialmente, todos os equipamentos estão disponíveis.
                         qtd_disponivel: quantidadeMaxima
                     })
                 }
             );
 
+            // Converte a resposta da API para um objeto JavaScript.
             const resultado = await resposta.json();
 
+            // Se a API retornar erro, exibe a mensagem correspondente.
             if (!resposta.ok) {
                 throw new Error(
                     resultado.mensagem ||
@@ -78,12 +92,18 @@ export default function NovoEquipamento() {
                 );
             }
 
+            // Após o cadastro, volta para a página de equipamentos
+            // e solicita a atualização dos dados da página.
             router.push("/equipamentos");
             router.refresh();
+
         } catch (erro) {
+            // Captura erros da requisição e mostra a mensagem na tela.
             console.error("Erro ao cadastrar equipamento:", erro);
             setErro(erro.message);
+
         } finally {
+            // Libera o botão novamente, mesmo se ocorrer algum erro.
             setSalvando(false);
         }
     }
@@ -94,23 +114,10 @@ export default function NovoEquipamento() {
 
             <main className="flex-grow-1 p-4">
                 <div className="mb-4">
-                    <Link
-                        href="/equipamentos"
-                        className="text-decoration-none"
-                    >
-                        ← Voltar para equipamentos
-                    </Link>
+                    <Link href="/equipamentos" className="text-decoration-none"> Voltar para equipamentos</Link>
+                    <h2 className="fw-bold mt-3 mb-1" style={{ color: "#142D52" }}> Registrar novo equipamento</h2>
 
-                    <h2
-                        className="fw-bold mt-3 mb-1"
-                        style={{ color: "#142D52" }}
-                    >
-                        Registrar novo equipamento
-                    </h2>
-
-                    <p className="text-secondary">
-                        Preencha os dados do equipamento de proteção individual.
-                    </p>
+                    <p className="text-secondary">Preencha os dados do equipamento de proteção individual.</p>
                 </div>
 
                 <section className="card border-0 shadow-sm">
@@ -118,12 +125,7 @@ export default function NovoEquipamento() {
                         <form onSubmit={cadastrarEquipamento}>
                             <div className="row g-3">
                                 <div className="col-12">
-                                    <label
-                                        htmlFor="nome"
-                                        className="form-label fw-semibold"
-                                    >
-                                        Nome do equipamento
-                                    </label>
+                                    <label className="form-label fw-semibold"> Nome do equipamento </label>
 
                                     <input
                                         id="nome"
@@ -138,11 +140,8 @@ export default function NovoEquipamento() {
                                     />
                                 </div>
 
-                                <div className="col-md-6">
-                                    <label
-                                        htmlFor="categoria"
-                                        className="form-label fw-semibold"
-                                    >
+                                <div className="col-12">
+                                    <label className="form-label fw-semibold">
                                         Tipo / Categoria
                                     </label>
 
@@ -153,27 +152,6 @@ export default function NovoEquipamento() {
                                         className="form-control"
                                         placeholder="Ex.: Proteção para cabeça"
                                         value={formulario.categoria}
-                                        onChange={alterarCampo}
-                                        maxLength={100}
-                                        required
-                                    />
-                                </div>
-
-                                <div className="col-md-6">
-                                    <label
-                                        htmlFor="fabricante"
-                                        className="form-label fw-semibold"
-                                    >
-                                        Fabricante
-                                    </label>
-
-                                    <input
-                                        id="fabricante"
-                                        name="fabricante"
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Ex.: 3M"
-                                        value={formulario.fabricante}
                                         onChange={alterarCampo}
                                         maxLength={100}
                                         required
@@ -202,11 +180,13 @@ export default function NovoEquipamento() {
                                     />
 
                                     <div className="form-text">
-                                        Ao cadastrar, a quantidade disponível começará igual à quantidade máxima.
+                                        Ao cadastrar, a quantidade disponível
+                                        começará igual à quantidade máxima.
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Mostra o erro somente quando existir uma mensagem. */}
                             {erro && (
                                 <div className="alert alert-danger mt-4 mb-0">
                                     {erro}
@@ -226,6 +206,7 @@ export default function NovoEquipamento() {
                                     className="btn btn-primary"
                                     disabled={salvando}
                                 >
+                                    {/* Altera o texto enquanto o cadastro está sendo realizado. */}
                                     {salvando
                                         ? "Salvando..."
                                         : "Cadastrar equipamento"}
