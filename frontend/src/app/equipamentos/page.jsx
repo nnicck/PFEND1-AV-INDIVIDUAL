@@ -1,50 +1,9 @@
 "use client";
 import BarraNavegacao from "@/components/BarraNavegacao";
-import "bootstrap/dist/css/bootstrap.min.css";
+import Link from "next/link";
 
 export default function Equipamentos() {
-  const equipamentos = [
-    {
-      id: "EPI-001",
-      nome: "Capacete de segurança",
-      imagem: "/equipamentos/capacete.png",
-    },
-    {
-      id: "EPI-002",
-      nome: "Luva de proteção",
-      imagem: "/equipamentos/luva.png",
-    },
-    {
-      id: "EPI-003",
-      nome: "Óculos de proteção",
-      imagem: "/equipamentos/oculos.png",
-    },
-    {
-      id: "EPI-004",
-      nome: "Botina de segurança",
-      imagem: "/equipamentos/botina.png",
-    },
-    {
-      id: "EPI-005",
-      nome: "Protetor auricular",
-      imagem: "/equipamentos/protetor-auricular.png",
-    },
-    {
-      id: "EPI-006",
-      nome: "Máscara respiratória",
-      imagem: "/equipamentos/mascara.png",
-    },
-    {
-      id: "EPI-007",
-      nome: "Colete refletivo",
-      imagem: "/equipamentos/colete.png",
-    },
-    {
-      id: "EPI-008",
-      nome: "Cinto de segurança",
-      imagem: "/equipamentos/cinto.png",
-    },
-  ];
+  
 
   return (
     <div className="d-flex min-vh-100 bg-light">
@@ -77,7 +36,9 @@ export default function Equipamentos() {
             </div>
 
             <div className="text-secondary">
-                <button type="button" className="btn btn-primary">+ Registrar novo equipamento</button>
+              <Link href={"/equipamentos/novo"} className="btn btn-primary">
+                + Registrar novo equipamento
+              </Link>
             </div>
           </div>
         </section>
@@ -87,9 +48,12 @@ export default function Equipamentos() {
                   <tr>
                     {/* falta tamanho e quantidade nos detalhes*/}
                     <th>ID</th>
-                    <th>Imagem</th>
                     <th>Nome</th>
-                    <th>Tipo</th> 
+                    <th>Tipo</th>
+                    <th>Qtd de equipamentos</th> 
+                    {/* qtd máxima que pode ser editado, Não pode ser menor do que a qtd disponível*/}
+                    <th>Qtd disponível</th>
+                    {/* QTD disponível depende de quantas pessoas pegaram esse equipamentos específico (contando a quantidade de todas as pessoas que pegaram esse tal equipamento) */}
                     <th>Status</th>
                     <th>Ações</th>
                   </tr>
@@ -97,22 +61,26 @@ export default function Equipamentos() {
                 <tbody>
                 <tr>
                     <th scope="row" className="text-primary">1</th>
-                    <td><img src="#" alt="#" /></td>
                     <td>Capacete de segurança</td>
                     <td>Proteção capacete</td>
+                    <td>10</td>
+                    <td>5</td> 
                     <td><span className="badge bg-success-subtle text-success">Em andamento</span></td>
                     <td>
-                        <button className="btn btn-outline-primary btn-sm me-1">
-                            <i className="bi bi-eye"></i>
-                        </button>
+                      <div className="d-flex gap-3">
+                         <Link
+                        href={"#"}
+                        className="btn btn-primary btn-sm">
+                        Editar
+                      </Link>
 
-                        <button className="btn btn-outline-primary btn-sm me-1">
-                            <i className="bi bi-pencil-square"></i>
-                        </button>
+                      <Link
+                        href={"#"}
+                        className="btn btn-sm btn-danger">
+                        excluir
+                      </Link>
 
-                        <button className="btn btn-outline-danger btn-sm">
-                            <i className="bi bi-trash"></i>
-                        </button>
+                      </div>
                     </td>
                 </tr>
 

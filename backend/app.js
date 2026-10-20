@@ -7,6 +7,7 @@ import { criarEquipamentoModel } from "./models/EquipamentoModel.js";
 import { criarFuncionarioModel } from "./models/FuncionarioModel.js";
 import { criarEmprestimoModel } from "./models/EmprestimoModel.js";
 import { criarDevolucaoModel } from "./models/DevolucaoModel.js";
+import { criarDashboardModel } from "./models/DashboardModel.js";
 
 // Services
 import { criarEquipamentoService } from "./services/EquipamentoService.js";
@@ -19,12 +20,14 @@ import { criarEquipamentoController } from "./controllers/EquipamentoController.
 import { criarFuncionarioController } from "./controllers/FuncionarioController.js";
 import { criarEmprestimoController } from "./controllers/EmprestimoController.js";
 import { criarDevolucaoController } from "./controllers/DevolucaoController.js";
+import { criarDashboardController } from "./controllers/DashboardController.js";
 
 // Routes
 import { criarEquipamentoRoutes } from "./routes/EquipamentoRoutes.js";
 import { criarFuncionarioRoutes } from "./routes/FuncionarioRoutes.js";
 import { criarEmprestimoRoutes } from "./routes/EmprestimoRoutes.js";
 import { criarDevolucaoRoutes } from "./routes/DevolucaoRoutes.js";
+import { criarDashboardRoutes } from "./routes/DashboardRoutes.js";
 
 export const app = express();
 
@@ -32,6 +35,13 @@ export const app = express();
 app.use(express.json());
 
 const pool = criarPool();
+
+
+// ==================== DASHBOARD ====================
+
+const dashboardModel = criarDashboardModel({ pool });
+const dashboardController = criarDashboardController({ dashboardModel });
+const dashboardRoutes = criarDashboardRoutes({ dashboardController });
 
 // ==================== EQUIPAMENTOS ====================
 
@@ -82,6 +92,7 @@ app.use("/api/equipamentos", equipamentoRoutes);
 app.use("/api/funcionarios", funcionarioRoutes);
 app.use("/api/emprestimos", emprestimoRoutes);
 app.use("/api/devolucoes", devolucaoRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 
 

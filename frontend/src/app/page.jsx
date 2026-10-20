@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
+import Link from "next/link";
 import CardsResumo from "@/components/CardsResumo";
 import BarraNavegacao from "@/components/BarraNavegacao";
 import RegistroEmprestimo from "@/components/RegistroEmprestimo";
@@ -24,6 +25,7 @@ export default function Home() {
                 }
 
                 const resultado = await resposta.json();
+                console.log(resultado.dados);
                 
                 setEmprestimos(resultado.dados);
             } catch (erro) {
@@ -32,6 +34,39 @@ export default function Home() {
         }
 
         carregarEmprestimos();
+    }, []);
+
+
+
+    //Dashboard
+
+    const [resumo, setResumo] = useState({
+    totalEpis: 0,
+    disponivel: 0,
+    emprestimosAtivos: 0,
+    devolucoesAtrasadas: 0
+    });
+
+    useEffect(() => {
+        async function carregarResumo() {
+            try {
+                const resposta = await fetch(
+                    "http://localhost:3001/api/dashboard/resumo"
+                );
+
+                if (!resposta.ok) {
+                    throw new Error("Erro ao carregar resumo");
+                }
+
+                const resultado = await resposta.json();
+
+                setResumo(resultado.dados);
+            } catch (erro) {
+                console.error("Erro ao carregar resumo:", erro);
+            }
+        }
+
+        carregarResumo();
     }, []);
 
 
@@ -46,15 +81,20 @@ export default function Home() {
         <h2 className="text-black text-left">Olá! Seja bem-vindo!</h2>
         <h5 className="text-secondary">Aqui está um resumo dos EPIs e movimentação do sistema</h5>
       </div>
-      <button type="button" className="btn btn-primary">+ Registrar novo empréstimo</button>
+      <Link
+          href={"/emprestimos/novo"}
+          className="btn btn-primary"
+      >
+          + Registrar novo empréstimo
+      </Link>
     </div>
 
 
       <div className="container d-flex justify-content-between gap-2 mt-5">
-        <CardsResumo titEpi="Total de EPIs" qtdEpi="25" descEpi="cadastros no sistemas"></CardsResumo>
-        <CardsResumo titEpi="Disponível" qtdEpi="45" descEpi="itens disponível"></CardsResumo>
-        <CardsResumo titEpi="Empréstimos ativos" qtdEpi="55" descEpi="em andamento"></CardsResumo>
-        <CardsResumo titEpi="Devoluções atrasadas" qtdEpi="55" descEpi="requerem atenção"></CardsResumo>
+        <CardsResumo titEpi="Total de EPIs" qtdEpi={Number(resumo.totalEpis)} descEpi="cadastros no sistemas"></CardsResumo>
+        <CardsResumo titEpi="Disponível" qtdEpi={Number(resumo.disponivel)} descEpi="itens disponível"></CardsResumo>
+        <CardsResumo titEpi="Empréstimos ativos" qtdEpi={Number(resumo.emprestimosAtivos)} descEpi="em andamento"></CardsResumo>
+        <CardsResumo titEpi="Devoluções atrasadas" qtdEpi={Number(resumo.devolucoesAtrasadas)} descEpi="requerem atenção"></CardsResumo>
       </div>
 
       {erro && <p className="text-danger">{erro}</p>}
@@ -108,38 +148,53 @@ export default function Home() {
             <th>Data</th>
             <th>Funcionário</th>
             <th>Equipamento</th>
+            <th>Quantidade</th>
+            <th>Devolução prevista</th>
             <th>Status</th>
             <th>Ações</th>
           </tr>
         </thead>
 
         <tbody>
-                    {emprestimos.map((emprestimo) => (
-                        <tr key={emprestimo.id}>
-                            <th scope="row" className="text-primary">
-                                {emprestimo.id}
-                            </th>
+          {emprestimos.map((emprestimo) => (
+              <tr key={emprestimo.emprestimo_id}>
+                  <td className="text-primary">
+                      {emprestimo.emprestimo_id}
+                  </td>
 
-                            <td>
-                                {new Date(
-                                    emprestimo.data_emprestimo
-                                ).toLocaleDateString("pt-BR", {
-                                    timeZone: "UTC",
-                                })}
-                            </td>
+                  <td>
+                      {new Date(emprestimo.data_emprestimo)
+                          .toLocaleDateString("pt-BR", {
+                              timeZone: "UTC"
+                          })}
+                  </td>
 
-                            <td>{emprestimo.funcionario_id}</td>
-                            <td>{emprestimo.equipamento_id}</td>
-                            <td>{emprestimo.status}</td>
+                  <td>{emprestimo.funcionario_nome}</td>
 
-                            <td>
-                                <button className="btn btn-primary btn-sm">
-                                    Editar
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
+                  <td>{emprestimo.equipamento_nome}</td>
+
+                  <td>{emprestimo.qtd_emprestimo}</td>
+
+                  <td>
+                    {new Date(emprestimo.data_prevista_devolucao)
+                    .toLocaleDateString("pt-BR", {
+                        timeZone: "UTC"
+                    })}
+                    </td>
+
+                  <td>{emprestimo.status}</td>
+
+                  <td>
+                    <Link
+                        href={`/emprestimos/editar/${emprestimo.emprestimo_id}`}
+                        className="btn btn-primary btn-sm"
+                    >
+                        Editar
+                    </Link>
+                  </td>
+              </tr>
+          ))}
+      </tbody>
 
       </table>
     </div>

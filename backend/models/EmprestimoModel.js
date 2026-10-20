@@ -1,8 +1,36 @@
 // pool = conexões do MySQL
 export function criarEmprestimoModel({ pool }) {
 
+    //Dando Join para juntas todas as tabelas para cada registro
     async function listarTodos() {
-        const [linhas] = await pool.query("SELECT * FROM emprestimos");
+        const sql = `
+            SELECT
+                e.id AS emprestimo_id, 
+                e.funcionario_id,
+                e.equipamento_id,
+                f.nome AS funcionario_nome,
+                f.cargo,
+                f.setor,
+                eq.nome AS equipamento_nome,
+                eq.categoria,
+                e.data_emprestimo,
+                e.data_prevista_devolucao,
+                e.qtd_emprestimo,
+                e.status,
+                d.data_devolucao,
+                d.quantidade_devolvida,
+                d.condicao
+            FROM emprestimos e
+            INNER JOIN funcionarios f
+                ON e.funcionario_id = f.id
+            INNER JOIN equipamentos eq
+                ON e.equipamento_id = eq.id
+            LEFT JOIN devolucoes d
+                ON e.id = d.emprestimo_id
+        `;
+
+        const [linhas] = await pool.query(sql);
+
         return linhas;
     }
 
