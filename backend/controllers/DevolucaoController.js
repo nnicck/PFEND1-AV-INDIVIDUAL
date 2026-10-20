@@ -1,5 +1,5 @@
-export function criarDevolucaoController({ devolucaoService }) {
 
+export function criarDevolucaoController({ devolucaoService }) {
     async function listar(req, res, next) {
         try {
             const devolucoes = await devolucaoService.listar();
@@ -26,20 +26,28 @@ export function criarDevolucaoController({ devolucaoService }) {
         }
     }
 
-    async function deletar(req, res, next) {
+    async function criar(req, res, next) {
         try {
-            await devolucaoService.deletarPorId(req.params.id);
-            res.status(200).json({
+            const devolucaoNova = await devolucaoService.criar(req.body);
+
+            res.status(201).json({
                 sucesso: true,
-                mensagem: "Devolução excluída com sucesso"
+                mensagem: "Devolução registrada com sucesso",
+                dados: devolucaoNova
             });
         } catch (erro) {
-            if (erro.message.includes("ID deve")) {
-                return res.status(400).json({ erro: erro.message });
-            }
-
-            if (erro.message.includes("não encontrada")) {
-                return res.status(404).json({ erro: erro.message });
+            if (
+                erro instanceof TypeError ||
+                erro instanceof RangeError ||
+                erro.message.includes("inválido") ||
+                erro.message.includes("não encontrado") ||
+                erro.message.includes("quantidade") ||
+                erro.message.includes("empréstimo")
+            ) {
+                return res.status(400).json({
+                    sucesso: false,
+                    erro: erro.message
+                });
             }
 
             next(erro);
@@ -67,7 +75,13 @@ export function criarDevolucaoController({ devolucaoService }) {
                 return res.status(404).json({ erro: erro.message });
             }
 
-            if (erro instanceof Error) {
+            if (
+                erro instanceof TypeError ||
+                erro instanceof RangeError ||
+                erro.message.includes("inválido") ||
+                erro.message.includes("quantidade") ||
+                erro.message.includes("empréstimo")
+            ) {
                 return res.status(400).json({
                     sucesso: false,
                     erro: erro.message
@@ -78,14 +92,37 @@ export function criarDevolucaoController({ devolucaoService }) {
         }
     }
 
-    async function criar(req, res, next) {
+    async function deletar(req, res, next) {
         try {
-            const devolucaoNova = await devolucaoService.criar(req.body);
-            res.status(201).json({ sucesso: true, dados: devolucaoNova });
+            await devolucaoService.deletarPorId(req.params.id);
+
+            res.status(200).json({
+                sucesso: true,
+                mensagem: "Devolução excluída com sucesso"
+            });
         } catch (erro) {
-            res.status(400).json({ sucesso: false, erro: erro.message });
+            if (erro.message.includes("ID deve")) {
+                return res.status(400).json({ erro: erro.message });
+            }
+
+            if (erro.message.includes("não encontrada")) {
+                return res.status(404).json({ erro: erro.message });
+            }
+
+            if (
+                erro.message.includes("estoque") ||
+                erro.message.includes("disponível") ||
+                erro.message.includes("conflito")
+            ) {
+                return res.status(409).json({
+                    sucesso: false,
+                    erro: erro.message
+                });
+            }
+
+            next(erro);
         }
     }
 
-    return { listar, buscar, criar, deletar, atualizar };
+    return { listar, buscar, criar, atualizar, deletar };
 }

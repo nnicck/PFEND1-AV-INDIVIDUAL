@@ -31,7 +31,7 @@ export default function BarraNavegacao() {
             Equipamentos
           </Link>
 
-          <Link href={"/emprestimos"} className="text-white text-decoration-none rounded p-3 link-navegacao">
+          <Link href={"/funcionarios"} className="text-white text-decoration-none rounded p-3 link-navegacao">
             funcionários
           </Link>
 

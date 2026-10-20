@@ -1,5 +1,5 @@
-export function criarEmprestimoController({ emprestimoService }) {
 
+export function criarEmprestimoController({ emprestimoService }) {
     async function listar(req, res, next) {
         try {
             const emprestimos = await emprestimoService.listar();
@@ -26,20 +26,26 @@ export function criarEmprestimoController({ emprestimoService }) {
         }
     }
 
-    async function deletar(req, res, next) {
+    async function criar(req, res, next) {
         try {
-            await emprestimoService.deletarPorId(req.params.id);
-            res.status(200).json({
+            const emprestimoNovo = await emprestimoService.criar(req.body);
+
+            res.status(201).json({
                 sucesso: true,
-                mensagem: "Empréstimo excluído com sucesso"
+                dados: emprestimoNovo
             });
         } catch (erro) {
-            if (erro.message.includes("ID deve")) {
-                return res.status(400).json({ erro: erro.message });
-            }
-
-            if (erro.message.includes("não encontrado")) {
-                return res.status(404).json({ erro: erro.message });
+            if (
+                erro instanceof TypeError ||
+                erro instanceof RangeError ||
+                erro.message.includes("inválido") ||
+                erro.message.includes("disponível") ||
+                erro.message.includes("não encontrado")
+            ) {
+                return res.status(400).json({
+                    sucesso: false,
+                    erro: erro.message
+                });
             }
 
             next(erro);
@@ -67,7 +73,12 @@ export function criarEmprestimoController({ emprestimoService }) {
                 return res.status(404).json({ erro: erro.message });
             }
 
-            if (erro instanceof Error) {
+            if (
+                erro instanceof TypeError ||
+                erro instanceof RangeError ||
+                erro.message.includes("inválido") ||
+                erro.message.includes("disponível")
+            ) {
                 return res.status(400).json({
                     sucesso: false,
                     erro: erro.message
@@ -78,14 +89,30 @@ export function criarEmprestimoController({ emprestimoService }) {
         }
     }
 
-    async function criar(req, res, next) {
+    async function deletar(req, res, next) {
         try {
-            const emprestimoNovo = await emprestimoService.criar(req.body);
-            res.status(201).json({ sucesso: true, dados: emprestimoNovo });
+            await emprestimoService.deletarPorId(req.params.id);
+
+            res.status(200).json({
+                sucesso: true,
+                mensagem: "Empréstimo excluído com sucesso"
+            });
         } catch (erro) {
-            res.status(400).json({ sucesso: false, erro: erro.message });
+            if (erro.message.includes("ID deve")) {
+                return res.status(400).json({ erro: erro.message });
+            }
+
+            if (erro.message.includes("não encontrado")) {
+                return res.status(404).json({ erro: erro.message });
+            }
+
+            if (erro.message.includes("devolução")) {
+                return res.status(409).json({ sucesso: false, erro: erro.message });
+            }
+
+            next(erro);
         }
     }
 
-    return { listar, buscar, criar, deletar, atualizar };
+    return { listar, buscar, criar, atualizar, deletar };
 }

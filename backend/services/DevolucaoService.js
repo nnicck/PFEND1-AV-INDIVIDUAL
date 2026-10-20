@@ -1,7 +1,7 @@
+
 import Devolucao from "../models/Devolucao.js";
 
 export function criarDevolucaoService({ devolucaoModel }) {
-
     async function listar() {
         return devolucaoModel.listarTodos();
     }
@@ -22,6 +22,47 @@ export function criarDevolucaoService({ devolucaoModel }) {
         return devolucao;
     }
 
+    async function criar(dados) {
+        const devolucao = new Devolucao({
+            id: 1,
+            ...dados
+        });
+
+        return devolucaoModel.registrar({
+            emprestimo_id: devolucao.emprestimo_id,
+            data_devolucao: devolucao.data_devolucao,
+            quantidade_devolvida: devolucao.quantidade_devolvida,
+            condicao: devolucao.condicao
+        });
+    }
+
+    async function atualizar(idRecebido, dados) {
+        const id = Number(idRecebido);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new Error("ID deve ser um número inteiro positivo");
+        }
+
+        const existente = await devolucaoModel.buscarPorId(id);
+
+        if (!existente) {
+            throw new Error(`Devolução ${id} não encontrada`);
+        }
+
+        const devolucao = new Devolucao({
+            ...existente,
+            ...dados,
+            id
+        });
+
+        return devolucaoModel.atualizar(id, {
+            emprestimo_id: devolucao.emprestimo_id,
+            data_devolucao: devolucao.data_devolucao,
+            quantidade_devolvida: devolucao.quantidade_devolvida,
+            condicao: devolucao.condicao
+        });
+    }
+
     async function deletarPorId(idRecebido) {
         const id = Number(idRecebido);
 
@@ -38,39 +79,11 @@ export function criarDevolucaoService({ devolucaoModel }) {
         return true;
     }
 
-    async function criar(dados) {
-        const devolucao = new Devolucao({ id: 1, ...dados });
-
-        return devolucaoModel.criar({
-            emprestimo_id: devolucao.emprestimo_id,
-            data_devolucao: devolucao.data_devolucao,
-            quantidade_devolvida: devolucao.quantidade_devolvida,
-            condicao: devolucao.condicao
-        });
-    }
-
-    async function atualizar(idRecebido, dados) {
-        const id = Number(idRecebido);
-
-        if (!Number.isInteger(id) || id <= 0) {
-            throw new Error("ID deve ser um número inteiro positivo");
-        }
-
-        const devolucaoExistente = await devolucaoModel.buscarPorId(id);
-
-        if (!devolucaoExistente) {
-            throw new Error(`Devolução ${id} não encontrada`);
-        }
-
-        const devolucao = new Devolucao({ id, ...dados });
-
-        return devolucaoModel.atualizar(id, {
-            emprestimo_id: devolucao.emprestimo_id,
-            data_devolucao: devolucao.data_devolucao,
-            quantidade_devolvida: devolucao.quantidade_devolvida,
-            condicao: devolucao.condicao
-        });
-    }
-
-    return { listar, buscarPorId, deletarPorId, criar, atualizar };
+    return {
+        listar,
+        buscarPorId,
+        criar,
+        atualizar,
+        deletarPorId
+    };
 }

@@ -1,213 +1,294 @@
 "use client";
-import Image from "next/image";
-import styles from "./page.module.css";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import CardsResumo from "@/components/CardsResumo";
 import BarraNavegacao from "@/components/BarraNavegacao";
-import RegistroEmprestimo from "@/components/RegistroEmprestimo";
-import { useEffect, useState } from "react";
- //guardar informações que podem mudar e atualizar a tela automaticamente quando essas informações mudam
+
+const API = "http://localhost:3001/api";
 
 export default function Home() {
-  
-    //Empréstimo
     const [emprestimos, setEmprestimos] = useState([]);
+    const [equipamentos, setEquipamentos] = useState([]);
     const [erro, setErro] = useState("");
-    useEffect(() => {
-        async function carregarEmprestimos() {
-            try {
-                const resposta = await fetch(
-                    "http://localhost:3001/api/emprestimos"
-                );
+    const [carregando, setCarregando] = useState(true);
 
-                if (!resposta.ok) {
-                    throw new Error("Erro ao buscar empréstimos");
+    const [pesquisa, setPesquisa] = useState("");
+    const [statusFiltro, setStatusFiltro] = useState("");
+
+    function normalizarData(data) {
+        return data ? String(data).slice(0, 10) : "";
+    }
+
+    function formatarData(data) {
+        const [ano, mes, dia] = normalizarData(data).split("-");
+        return ano && mes && dia ? `${dia}/${mes}/${ano}` : "-";
+    }
+
+    function obterStatus(emprestimo) {
+        const status = emprestimo.status_atual ?? emprestimo.status ?? "Em andamento";
+
+        if (status === "Devolvido" || status === "Atrasado") {
+            return status;
+        }
+
+        const hoje = [
+            new Date().getFullYear(),
+            String(new Date().getMonth() + 1).padStart(2, "0"),
+            String(new Date().getDate()).padStart(2, "0")
+        ].join("-");
+
+        return normalizarData(emprestimo.data_prevista_devolucao) < hoje
+            && normalizarData(emprestimo.data_prevista_devolucao)
+            ? "Atrasado"
+            : "Em andamento";
+    }
+
+    useEffect(() => {
+        async function carregarDados() {
+            try {
+                setCarregando(true);
+                setErro("");
+
+                const respostas = await Promise.all([
+                    fetch(`${API}/emprestimos`),
+                    fetch(`${API}/equipamentos`)
+                ]);
+
+                if (respostas.some((resposta) => !resposta.ok)) {
+                    throw new Error("Não foi possível carregar os dados.");
                 }
 
-                const resultado = await resposta.json();
-                console.log(resultado.dados);
-                
-                setEmprestimos(resultado.dados);
+                const resultados = await Promise.all(
+                    respostas.map((resposta) => resposta.json())
+                );
+
+                const listaEmprestimos = resultados[0].dados ?? resultados[0];
+                const listaEquipamentos = resultados[1].dados ?? resultados[1];
+
+                if (!Array.isArray(listaEmprestimos) ||
+                    !Array.isArray(listaEquipamentos)) {
+                    throw new Error("A API retornou dados em formato inválido.");
+                }
+
+                setEmprestimos(listaEmprestimos);
+                setEquipamentos(listaEquipamentos);
             } catch (erro) {
-                console.error(erro);
+                console.error("Erro ao carregar dados:", erro);
+                setErro(erro.message || "Erro ao carregar os dados.");
+            } finally {
+                setCarregando(false);
             }
         }
 
-        carregarEmprestimos();
+        carregarDados();
     }, []);
 
+    const resumo = useMemo(() => ({
+        emprestimosAtivos: emprestimos.filter((e) =>
+            ["Em andamento", "Atrasado"].includes(obterStatus(e))
+        ).length,
 
+        devolucoesAtrasadas: emprestimos.filter(
+            (e) => obterStatus(e) === "Atrasado"
+        ).length,
 
-    //Dashboard
+        totalEpis: equipamentos.reduce(
+            (total, e) => total + (Number(e.maximo_equipamentos) || 0), 0
+        ),
 
-    const [resumo, setResumo] = useState({
-    totalEpis: 0,
-    disponivel: 0,
-    emprestimosAtivos: 0,
-    devolucoesAtrasadas: 0
-    });
+        disponivel: equipamentos.reduce(
+            (total, e) => total + (Number(e.qtd_disponivel) || 0), 0
+        )
+    }), [emprestimos, equipamentos]);
 
-    useEffect(() => {
-        async function carregarResumo() {
-            try {
-                const resposta = await fetch(
-                    "http://localhost:3001/api/dashboard/resumo"
-                );
+    const emprestimosFiltrados = useMemo(() => {
+        const termo = pesquisa.trim().toLowerCase();
 
-                if (!resposta.ok) {
-                    throw new Error("Erro ao carregar resumo");
-                }
+        return emprestimos.filter((e) => {
+            const id = String(e.emprestimo_id ?? e.id ?? "");
+            const funcionario = String(e.funcionario_nome ?? "");
+            const equipamento = String(e.equipamento_nome ?? "");
 
-                const resultado = await resposta.json();
+            const correspondePesquisa = [id, funcionario, equipamento]
+                .some((valor) => valor.toLowerCase().includes(termo));
 
-                setResumo(resultado.dados);
-            } catch (erro) {
-                console.error("Erro ao carregar resumo:", erro);
-            }
-        }
+            const correspondeStatus =
+                !statusFiltro || obterStatus(e) === statusFiltro;
 
-        carregarResumo();
-    }, []);
+            return correspondePesquisa && correspondeStatus;
+        });
+    }, [emprestimos, pesquisa, statusFiltro]);
 
+    function limparFiltros() {
+        setPesquisa("");
+        setStatusFiltro("");
+    }
 
+    function classeStatus(status) {
+        if (status === "Devolvido") return "text-bg-success";
+        if (status === "Atrasado") return "text-bg-danger";
+        return "text-bg-warning";
+    }
 
-  return (
-    <>
-    <div className="d-flex flex-row">
-    <BarraNavegacao></BarraNavegacao>
-    <main className="flex-grow-1">
-    <div className="d-flex justify-content-around align-items-center mt-5">
-      <div className="d-flex flex-column align-items-center justify-content-center">
-        <h2 className="text-black text-left">Olá! Seja bem-vindo!</h2>
-        <h5 className="text-secondary">Aqui está um resumo dos EPIs e movimentação do sistema</h5>
-      </div>
-      <Link
-          href={"/emprestimos/novo"}
-          className="btn btn-primary"
-      >
-          + Registrar novo empréstimo
-      </Link>
-    </div>
+    return (
+        <div className="d-flex flex-row">
+            <BarraNavegacao />
 
+            <main className="flex-grow-1 min-vh-100">
+                <div className="container-fluid px-4 mt-5">
+                    <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                        <div>
+                            <h2 className="text-black">Olá! Seja bem-vindo!</h2>
+                            <h5 className="text-secondary">
+                                Aqui está um resumo dos EPIs e da movimentação do sistema.
+                            </h5>
+                        </div>
 
-      <div className="container d-flex justify-content-between gap-2 mt-5">
-        <CardsResumo titEpi="Total de EPIs" qtdEpi={Number(resumo.totalEpis)} descEpi="cadastros no sistemas"></CardsResumo>
-        <CardsResumo titEpi="Disponível" qtdEpi={Number(resumo.disponivel)} descEpi="itens disponível"></CardsResumo>
-        <CardsResumo titEpi="Empréstimos ativos" qtdEpi={Number(resumo.emprestimosAtivos)} descEpi="em andamento"></CardsResumo>
-        <CardsResumo titEpi="Devoluções atrasadas" qtdEpi={Number(resumo.devolucoesAtrasadas)} descEpi="requerem atenção"></CardsResumo>
-      </div>
+                        <Link href="/emprestimos/novo" className="btn btn-primary">
+                            + Registrar novo empréstimo
+                        </Link>
+                    </div>
 
-      {erro && <p className="text-danger">{erro}</p>}
+                    {/* Cards centralizados */}
+                    <div className="row justify-content-center g-3 mt-4">
+                        <div className="col-12 col-sm-6 col-xl-4">
+                            <CardsResumo
+                                titEpi="Empréstimos ativos"
+                                qtdEpi={resumo.emprestimosAtivos}
+                                descEpi="em andamento ou atrasados"
+                            />
+                        </div>
 
-      {/* tabela */}
-      <div className="card border-0 rounded-3 mt-4 w-100 bg-transparent">
+                        <div className="col-12 col-sm-6 col-xl-4">
+                            <CardsResumo
+                                titEpi="Devoluções atrasadas"
+                                qtdEpi={resumo.devolucoesAtrasadas}
+                                descEpi="requerem atenção"
+                            />
+                        </div>
+                    </div>
 
-  {/* Título */}
-  <div className="card-header py-3 px-4 bg-transparent border-0">
-    <h5 className="mb-0">Empréstimos recentes</h5>
-  </div>
+                    {/* Tabela */}
+                    <div className="card border-0 bg-transparent mt-4 mb-5">
+                        <div className="card-header bg-transparent border-0 px-0 py-3">
+                            <h5 className="mb-0">Empréstimos recentes</h5>
+                        </div>
 
-  <div className="card-body p-0">
+                        <div className="card-body p-0">
+                            {/* Filtros */}
+                            <div className="row g-3 align-items-end py-3">
+                                <div className="col-12 col-lg-6">
+                                    <label className="form-label">Pesquisar</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="ID, funcionário ou equipamento..."
+                                        value={pesquisa}
+                                        onChange={(e) => setPesquisa(e.target.value)}
+                                    />
+                                </div>
 
-    {/* Filtros */}
-    <div className="px-4 pt-2 pb-4">
-      <div className="row g-2 align-items-end">
+                                <div className="col-12 col-md-7 col-lg-4">
+                                    <label className="form-label">Status</label>
+                                    <select
+                                        className="form-select"
+                                        value={statusFiltro}
+                                        onChange={(e) => setStatusFiltro(e.target.value)}
+                                    >
+                                        <option value="">Todos os status</option>
+                                        <option value="Em andamento">Em andamento</option>
+                                        <option value="Devolvido">Devolvido</option>
+                                        <option value="Atrasado">Atrasado</option>
+                                    </select>
+                                </div>
 
-        <div className="col-12 col-lg-4">
-          <label className="form-label">Pesquisar</label>
-          <input type="text" className="form-control" placeholder="ID, funcionário ou equipamento..."/>
+                                <div className="col-12 col-md-5 col-lg-2">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary w-100"
+                                        onClick={limparFiltros}
+                                    >
+                                        Limpar filtros
+                                    </button>
+                                </div>
+                            </div>
+
+                            {erro && <div className="alert alert-danger">{erro}</div>}
+
+                            {carregando && (
+                                <p className="text-secondary py-3">
+                                    Carregando empréstimos...
+                                </p>
+                            )}
+
+                            <div className="table-responsive">
+                                <table className="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Data</th>
+                                            <th>Funcionário</th>
+                                            <th>Equipamento</th>
+                                            <th>Quantidade</th>
+                                            <th>Devolução prevista</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {!carregando && !erro &&
+                                            emprestimosFiltrados.map((e) => {
+                                                const id = e.emprestimo_id ?? e.id;
+                                                const status = obterStatus(e);
+
+                                                return (
+                                                    <tr key={id}>
+                                                        <td className="text-primary">{id}</td>
+                                                        <td>{formatarData(e.data_emprestimo)}</td>
+                                                        <td>{e.funcionario_nome ?? "-"}</td>
+                                                        <td>{e.equipamento_nome ?? "-"}</td>
+                                                        <td>{e.qtd_emprestimo ?? "-"}</td>
+                                                        <td>{formatarData(e.data_prevista_devolucao)}</td>
+                                                        <td>
+                                                            <span className={`badge ${classeStatus(status)}`}>
+                                                                {status}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <Link
+                                                                href={`/emprestimos/editar/${id}`}
+                                                                className="btn btn-primary btn-sm"
+                                                            >
+                                                                Editar
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+
+                                        {!carregando && !erro &&
+                                            emprestimosFiltrados.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={8} className="text-center text-secondary py-4">
+                                                        Nenhum empréstimo encontrado.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {!carregando && !erro && (
+                                <p className="text-secondary small mt-2">
+                                    Exibindo {emprestimosFiltrados.length} de {emprestimos.length} empréstimos.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-
-        <div className="col-12 col-md-6 col-lg-2">
-          <label className="form-label">Data inicial</label>
-          <input
-            type="date"
-            className="form-control"
-          />
-        </div>
-
-        <div className="col-12 col-lg-4">
-          <label className="form-label">Status</label>
-          <select className="form-select" defaultValue="">
-            <option value="">Todos os status</option>
-            <option value="andamento">Em andamento</option>
-            <option value="devolvido">Devolvido</option>
-            <option value="atrasado">Atrasado</option>
-          </select>
-        </div>
-
-      </div>
-    </div>
-
-    {/* Tabela */}
-    <div className="table-responsive">
-      <table className="table ">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Data</th>
-            <th>Funcionário</th>
-            <th>Equipamento</th>
-            <th>Quantidade</th>
-            <th>Devolução prevista</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {emprestimos.map((emprestimo) => (
-              <tr key={emprestimo.emprestimo_id}>
-                  <td className="text-primary">
-                      {emprestimo.emprestimo_id}
-                  </td>
-
-                  <td>
-                      {new Date(emprestimo.data_emprestimo)
-                          .toLocaleDateString("pt-BR", {
-                              timeZone: "UTC"
-                          })}
-                  </td>
-
-                  <td>{emprestimo.funcionario_nome}</td>
-
-                  <td>{emprestimo.equipamento_nome}</td>
-
-                  <td>{emprestimo.qtd_emprestimo}</td>
-
-                  <td>
-                    {new Date(emprestimo.data_prevista_devolucao)
-                    .toLocaleDateString("pt-BR", {
-                        timeZone: "UTC"
-                    })}
-                    </td>
-
-                  <td>{emprestimo.status}</td>
-
-                  <td>
-                    <Link
-                        href={`/emprestimos/editar/${emprestimo.emprestimo_id}`}
-                        className="btn btn-primary btn-sm"
-                    >
-                        Editar
-                    </Link>
-                  </td>
-              </tr>
-          ))}
-      </tbody>
-
-      </table>
-    </div>
-
-    
-
-  </div>
-</div>
-</main>
-</div>
-    
-
-    
-    </>
-  );
+    );
 }

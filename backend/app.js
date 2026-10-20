@@ -2,76 +2,67 @@ import express from "express";
 import { criarPool } from "./config/database.js";
 import cors from "cors";
 
+
 // Models
-import { criarEquipamentoModel } from "./models/EquipamentoModel.js";
 import { criarFuncionarioModel } from "./models/FuncionarioModel.js";
+import { criarEquipamentoModel } from "./models/EquipamentoModel.js";
 import { criarEmprestimoModel } from "./models/EmprestimoModel.js";
 import { criarDevolucaoModel } from "./models/DevolucaoModel.js";
-import { criarDashboardModel } from "./models/DashboardModel.js";
 
 // Services
-import { criarEquipamentoService } from "./services/EquipamentoService.js";
 import { criarFuncionarioService } from "./services/FuncionarioService.js";
+import { criarEquipamentoService } from "./services/EquipamentoService.js";
 import { criarEmprestimoService } from "./services/EmprestimoService.js";
 import { criarDevolucaoService } from "./services/DevolucaoService.js";
 
 // Controllers
-import { criarEquipamentoController } from "./controllers/EquipamentoController.js";
 import { criarFuncionarioController } from "./controllers/FuncionarioController.js";
+import { criarEquipamentoController } from "./controllers/EquipamentoController.js";
 import { criarEmprestimoController } from "./controllers/EmprestimoController.js";
 import { criarDevolucaoController } from "./controllers/DevolucaoController.js";
-import { criarDashboardController } from "./controllers/DashboardController.js";
 
 // Routes
-import { criarEquipamentoRoutes } from "./routes/EquipamentoRoutes.js";
 import { criarFuncionarioRoutes } from "./routes/FuncionarioRoutes.js";
+import { criarEquipamentoRoutes } from "./routes/EquipamentosRoutes.js";
 import { criarEmprestimoRoutes } from "./routes/EmprestimoRoutes.js";
 import { criarDevolucaoRoutes } from "./routes/DevolucaoRoutes.js";
-import { criarDashboardRoutes } from "./routes/DashboardRoutes.js";
 
 export const app = express();
 
 // Middleware para ler JSON
 app.use(express.json());
 
+// Conexão com o banco de dados
 const pool = criarPool();
 
-
-// ==================== DASHBOARD ====================
-
-const dashboardModel = criarDashboardModel({ pool });
-const dashboardController = criarDashboardController({ dashboardModel });
-const dashboardRoutes = criarDashboardRoutes({ dashboardController });
-
-// ==================== EQUIPAMENTOS ====================
-
-const equipamentoModel = criarEquipamentoModel({ pool });
-const equipamentoService = criarEquipamentoService({ equipamentoModel });
-const equipamentoController = criarEquipamentoController({ equipamentoService });
-const equipamentoRoutes = criarEquipamentoRoutes({ equipamentoController });
-
-// ==================== FUNCIONÁRIOS ====================
+// ==================== MODELS ====================
 
 const funcionarioModel = criarFuncionarioModel({ pool });
-const funcionarioService = criarFuncionarioService({ funcionarioModel });
-const funcionarioController = criarFuncionarioController({ funcionarioService });
-const funcionarioRoutes = criarFuncionarioRoutes({ funcionarioController });
-
-// ==================== EMPRÉSTIMOS ====================
-
+const equipamentoModel = criarEquipamentoModel({ pool });
 const emprestimoModel = criarEmprestimoModel({ pool });
-const emprestimoService = criarEmprestimoService({ emprestimoModel });
-const emprestimoController = criarEmprestimoController({ emprestimoService });
-const emprestimoRoutes = criarEmprestimoRoutes({ emprestimoController });
-
-// ==================== DEVOLUÇÕES ====================
-
 const devolucaoModel = criarDevolucaoModel({ pool });
-const devolucaoService = criarDevolucaoService({ devolucaoModel });
-const devolucaoController = criarDevolucaoController({ devolucaoService });
-const devolucaoRoutes = criarDevolucaoRoutes({ devolucaoController });
 
-// ==================== ROTAS ====================
+// ==================== SERVICES ====================
+
+
+const funcionarioService = criarFuncionarioService({ funcionarioModel });
+const equipamentoService = criarEquipamentoService({ equipamentoModel });
+const emprestimoService = criarEmprestimoService({ emprestimoModel });
+const devolucaoService = criarDevolucaoService({ devolucaoModel });
+
+// ==================== CONTROLLERS ====================
+
+const funcionarioController = criarFuncionarioController({ funcionarioService });
+const equipamentoController = criarEquipamentoController({ equipamentoService });
+const emprestimoController = criarEmprestimoController({ emprestimoService });
+const devolucaoController = criarDevolucaoController({ devolucaoService });
+
+// ==================== ROUTES ====================
+
+const funcionarioRoutes = criarFuncionarioRoutes({ funcionarioController });
+const equipamentoRoutes = criarEquipamentoRoutes({ equipamentoController });
+const emprestimoRoutes = criarEmprestimoRoutes({ emprestimoController });
+const devolucaoRoutes = criarDevolucaoRoutes({ devolucaoController });
 
 // Teste do servidor
 app.get("/api/check", (req, res) => {
@@ -87,14 +78,11 @@ app.use(cors({
 
 app.use(express.json());
 
-// Registrar as rotas
-app.use("/api/equipamentos", equipamentoRoutes);
+// Registro das rotas
 app.use("/api/funcionarios", funcionarioRoutes);
+app.use("/api/equipamentos", equipamentoRoutes);
 app.use("/api/emprestimos", emprestimoRoutes);
 app.use("/api/devolucoes", devolucaoRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-
-
 
 // Rota não encontrada
 app.use((req, res) => {
@@ -104,11 +92,10 @@ app.use((req, res) => {
 });
 
 // Tratamento de erros
-app.use((erro, req, res, _next) => {
+app.use((erro, req, res, next) => {
     console.error(`Erro de sistema: ${erro.message}`);
 
     res.status(500).json({
         erro: "Falha interna do servidor"
     });
 });
-

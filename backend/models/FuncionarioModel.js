@@ -1,8 +1,11 @@
-// pool = conexões do MySQL
+
 export function criarFuncionarioModel({ pool }) {
 
     async function listarTodos() {
-        const [linhas] = await pool.query("SELECT * FROM funcionarios");
+        const [linhas] = await pool.query(
+            "SELECT * FROM funcionarios ORDER BY id DESC"
+        );
+
         return linhas;
     }
 
@@ -12,34 +15,67 @@ export function criarFuncionarioModel({ pool }) {
             [id]
         );
 
-        if (linhas.length === 0) {
-            return null;
-        }
-
-        return linhas[0];
+        return linhas.length === 0 ? null : linhas[0];
     }
 
     async function criar(funcionario) {
+        const { nome, cargo, setor, status_funcionarios } = funcionario;
+
+        if (!nome || !nome.trim()) {
+            throw new Error("O nome do funcionário é obrigatório.");
+        }
+
         const sql = `
-            INSERT INTO funcionarios (
-                nome, cargo, status_funcionario, setor
-            )
+            INSERT INTO funcionarios
+                (nome, cargo, setor, status_funcionarios)
             VALUES (?, ?, ?, ?)
         `;
 
         const valores = [
-            funcionario.nome,
-            funcionario.cargo,
-            funcionario.status_funcionario,
-            funcionario.setor
+            nome.trim(),
+            cargo || null,
+            setor || null,
+            status_funcionarios || "Ativo"
         ];
 
         const [resultado] = await pool.query(sql, valores);
 
         return {
-            ...funcionario,
-            id: resultado.insertId
+            id: resultado.insertId,
+            nome: nome.trim(),
+            cargo: cargo || null,
+            setor: setor || null,
+            status_funcionarios: status_funcionarios || "Ativo"
         };
+    }
+
+    async function atualizar(id, funcionario) {
+        const { nome, cargo, setor, status_funcionarios } = funcionario;
+
+        if (!nome || !nome.trim()) {
+            throw new Error("O nome do funcionário é obrigatório.");
+        }
+
+        const sql = `
+            UPDATE funcionarios
+            SET nome = ?,
+                cargo = ?,
+                setor = ?,
+                status_funcionarios = ?
+            WHERE id = ?
+        `;
+
+        const valores = [
+            nome.trim(),
+            cargo || null,
+            setor || null,
+            status_funcionarios || "Ativo",
+            id
+        ];
+
+        await pool.query(sql, valores);
+
+        return buscarPorId(id);
     }
 
     async function deletarPorId(id) {
@@ -48,49 +84,14 @@ export function criarFuncionarioModel({ pool }) {
             [id]
         );
 
-        if (resultado.affectedRows === 0) {
-            return null;
-        }
-
-        return true;
-    }
-
-    async function atualizar(id, funcionario) {
-        const sql = `
-            UPDATE funcionarios
-            SET nome = ?, cargo = ?, status_funcionario = ?, setor = ?
-            WHERE id = ?
-        `;
-
-        const valores = [
-            funcionario.nome,
-            funcionario.cargo,
-            funcionario.status_funcionario,
-            funcionario.setor,
-            id
-        ];
-
-        const [resultado] = await pool.query(sql, valores);
-
-        if (resultado.affectedRows === 0) {
-            const existente = await buscarPorId(id);
-
-            if (!existente) {
-                return null;
-            }
-        }
-
-        return {
-            ...funcionario,
-            id: Number(id)
-        };
+        return resultado.affectedRows > 0;
     }
 
     return {
         listarTodos,
         buscarPorId,
         criar,
-        deletarPorId,
-        atualizar
+        atualizar,
+        deletarPorId
     };
 }

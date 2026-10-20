@@ -13,63 +13,45 @@ export default function EditarEmprestimo() {
     const [emprestimo, setEmprestimo] = useState(null);
     const [funcionarios, setFuncionarios] = useState([]);
     const [equipamentos, setEquipamentos] = useState([]);
-
     const [erro, setErro] = useState("");
     const [salvando, setSalvando] = useState(false);
 
     useEffect(() => {
         async function carregarDados() {
             try {
-                setErro("");
+                const respostas = await Promise.all([
+                    fetch(`${API}/emprestimos/${id}`),
+                    fetch(`${API}/funcionarios`),
+                    fetch(`${API}/equipamentos`)
+                ]);
 
-                const [resEmprestimo, resFuncionarios, resEquipamentos] =
-                    await Promise.all([
-                        fetch(`${API}/emprestimos/${id}`),
-                        fetch(`${API}/funcionarios`),
-                        fetch(`${API}/equipamentos`)
-                    ]);
-
-                if (
-                    !resEmprestimo.ok ||
-                    !resFuncionarios.ok ||
-                    !resEquipamentos.ok
-                ) {
+                if (respostas.some((resposta) => !resposta.ok)) {
                     throw new Error("Erro ao carregar os dados.");
                 }
 
-                const resultadoEmprestimo = await resEmprestimo.json();
-                const resultadoFuncionarios = await resFuncionarios.json();
-                const resultadoEquipamentos = await resEquipamentos.json();
+                const [rEmprestimo, rFuncionarios, rEquipamentos] =
+                    await Promise.all(respostas.map((r) => r.json()));
 
-                const dados = resultadoEmprestimo.dados;
+                const dados = rEmprestimo.dados;
 
                 if (!dados) {
                     throw new Error("Empréstimo não encontrado.");
                 }
 
                 setEmprestimo({
-                    data_emprestimo: dados.data_emprestimo
-                        ? String(dados.data_emprestimo).slice(0, 10)
-                        : "",
+                    data_emprestimo: String(dados.data_emprestimo ?? "").slice(0, 10),
                     funcionario_id: String(dados.funcionario_id ?? ""),
                     equipamento_id: String(dados.equipamento_id ?? ""),
                     qtd_emprestimo: dados.qtd_emprestimo ?? "",
-                    data_prevista_devolucao:
-                        dados.data_prevista_devolucao
-                            ? String(dados.data_prevista_devolucao).slice(0, 10)
-                            : "",
+                    data_prevista_devolucao: String(
+                        dados.data_prevista_devolucao ?? ""
+                    ).slice(0, 10),
                     status: dados.status ?? "Em andamento"
                 });
 
-                setFuncionarios(
-                    resultadoFuncionarios.dados ?? []
-                );
-
-                setEquipamentos(
-                    resultadoEquipamentos.dados ?? []
-                );
+                setFuncionarios(rFuncionarios.dados ?? []);
+                setEquipamentos(rEquipamentos.dados ?? []);
             } catch (erro) {
-                console.error(erro);
                 setErro(erro.message || "Não foi possível carregar os dados.");
             }
         }
@@ -89,6 +71,23 @@ export default function EditarEmprestimo() {
     async function salvarAlteracoes(evento) {
         evento.preventDefault();
         setErro("");
+
+        if (
+            emprestimo.data_prevista_devolucao <
+            emprestimo.data_emprestimo
+        ) {
+            setErro("A data de devolução não pode ser anterior à data do empréstimo.");
+            return;
+        }
+
+        if (
+            !Number.isInteger(Number(emprestimo.qtd_emprestimo)) ||
+            Number(emprestimo.qtd_emprestimo) < 1
+        ) {
+            setErro("Informe uma quantidade inteira maior que zero.");
+            return;
+        }
+
         setSalvando(true);
 
         try {
@@ -109,35 +108,36 @@ export default function EditarEmprestimo() {
             });
 
             if (!resposta.ok) {
-                const mensagem = await resposta.text();
-                throw new Error(mensagem || "Erro ao atualizar empréstimo.");
+                const resultado = await resposta.json().catch(() => ({}));
+                throw new Error(
+                    resultado.mensagem ||
+                    resultado.erro ||
+                    "Erro ao atualizar empréstimo."
+                );
             }
 
             router.push("/");
             router.refresh();
         } catch (erro) {
-            console.error(erro);
             setErro(erro.message || "Não foi possível salvar as alterações.");
         } finally {
             setSalvando(false);
         }
     }
 
-    if (erro && !emprestimo) {
-        return (
-            <main className="container py-5">
-                <div className="alert alert-danger">{erro}</div>
-                <Link href="/" className="btn btn-secondary">
-                    Voltar
-                </Link>
-            </main>
-        );
-    }
-
     if (!emprestimo) {
         return (
             <main className="container py-5">
-                Carregando empréstimo...
+                {erro ? (
+                    <>
+                        <div className="alert alert-danger">{erro}</div>
+                        <Link href="/" className="btn btn-secondary">
+                            Voltar
+                        </Link>
+                    </>
+                ) : (
+                    <p>Carregando empréstimo...</p>
+                )}
             </main>
         );
     }
@@ -146,9 +146,7 @@ export default function EditarEmprestimo() {
         <main className="container py-5">
             <div className="card shadow-sm border-0">
                 <div className="card-header bg-white py-3">
-                    <h3 className="mb-0">
-                        Editar empréstimo #{id}
-                    </h3>
+                    <h3 className="mb-0">Editar empréstimo #{id}</h3>
                     <small className="text-muted">
                         O código do empréstimo não pode ser alterado.
                     </small>
@@ -156,16 +154,12 @@ export default function EditarEmprestimo() {
 
                 <div className="card-body p-4">
                     {erro && (
-                        <div className="alert alert-danger">
-                            {erro}
-                        </div>
+                        <div className="alert alert-danger">{erro}</div>
                     )}
 
                     <form onSubmit={salvarAlteracoes}>
                         <div className="mb-3">
-                            <label className="form-label">
-                                Data
-                            </label>
+                            <label className="form-label">Data do empréstimo</label>
                             <input
                                 type="date"
                                 name="data_emprestimo"
@@ -177,9 +171,7 @@ export default function EditarEmprestimo() {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">
-                                Funcionário
-                            </label>
+                            <label className="form-label">Funcionário</label>
                             <select
                                 name="funcionario_id"
                                 className="form-select"
@@ -187,15 +179,9 @@ export default function EditarEmprestimo() {
                                 onChange={atualizarCampo}
                                 required
                             >
-                                <option value="">
-                                    Selecione um funcionário
-                                </option>
-
+                                <option value="">Selecione um funcionário</option>
                                 {funcionarios.map((funcionario) => (
-                                    <option
-                                        key={funcionario.id}
-                                        value={String(funcionario.id)}
-                                    >
+                                    <option key={funcionario.id} value={funcionario.id}>
                                         {funcionario.nome}
                                     </option>
                                 ))}
@@ -203,9 +189,7 @@ export default function EditarEmprestimo() {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">
-                                Equipamento
-                            </label>
+                            <label className="form-label">Equipamento</label>
                             <select
                                 name="equipamento_id"
                                 className="form-select"
@@ -213,15 +197,9 @@ export default function EditarEmprestimo() {
                                 onChange={atualizarCampo}
                                 required
                             >
-                                <option value="">
-                                    Selecione um equipamento
-                                </option>
-
+                                <option value="">Selecione um equipamento</option>
                                 {equipamentos.map((equipamento) => (
-                                    <option
-                                        key={equipamento.id}
-                                        value={String(equipamento.id)}
-                                    >
+                                    <option key={equipamento.id} value={equipamento.id}>
                                         {equipamento.nome}
                                     </option>
                                 ))}
@@ -229,14 +207,13 @@ export default function EditarEmprestimo() {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label">
-                                Quantidade
-                            </label>
+                            <label className="form-label">Quantidade</label>
                             <input
                                 type="number"
                                 name="qtd_emprestimo"
                                 className="form-control"
                                 min="1"
+                                step="1"
                                 value={emprestimo.qtd_emprestimo}
                                 onChange={atualizarCampo}
                                 required
@@ -251,6 +228,7 @@ export default function EditarEmprestimo() {
                                 type="date"
                                 name="data_prevista_devolucao"
                                 className="form-control"
+                                min={emprestimo.data_emprestimo}
                                 value={emprestimo.data_prevista_devolucao}
                                 onChange={atualizarCampo}
                                 required
@@ -258,9 +236,7 @@ export default function EditarEmprestimo() {
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label">
-                                Status
-                            </label>
+                            <label className="form-label">Status</label>
                             <select
                                 name="status"
                                 className="form-select"
@@ -268,26 +244,14 @@ export default function EditarEmprestimo() {
                                 onChange={atualizarCampo}
                                 required
                             >
-                                <option value="Em andamento">
-                                    Em andamento
-                                </option>
-                                <option value="Devolvido">
-                                    Devolvido
-                                </option>
-                                <option value="Atrasado">
-                                    Atrasado
-                                </option>
-                                <option value="Concluído">
-                                    Concluído
-                                </option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Devolvido">Devolvido</option>
+                                <option value="Atrasado">Atrasado</option>
                             </select>
                         </div>
 
                         <div className="d-flex justify-content-end gap-2">
-                            <Link
-                                href="/"
-                                className="btn btn-outline-secondary"
-                            >
+                            <Link href="/" className="btn btn-outline-secondary">
                                 Cancelar
                             </Link>
 
@@ -296,9 +260,7 @@ export default function EditarEmprestimo() {
                                 className="btn btn-primary"
                                 disabled={salvando}
                             >
-                                {salvando
-                                    ? "Salvando..."
-                                    : "Salvar alterações"}
+                                {salvando ? "Salvando..." : "Salvar alterações"}
                             </button>
                         </div>
                     </form>
