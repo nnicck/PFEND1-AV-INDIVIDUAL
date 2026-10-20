@@ -1,110 +1,257 @@
-import BarraNavegacao from "@/components/BarraNavegacao"
-import Link from "next/link"
-export default function funcionarios(){
-    return(
-        <>
-        <div className="d-flex flex-row">
-            <BarraNavegacao></BarraNavegacao>
-            <main className="flex-grow-1">
-            <div className="d-flex justify-content-around align-items-center mt-5">
-            <div className="d-flex flex-column align-items-center justify-content-center">
-                <h2 className="text-black text-left">Olá! Seja bem-vindo!</h2>
-                <h5 className="text-secondary">Aqui está um resumo dos EPIs e movimentação do sistema</h5>
-            </div>
-            <Link
-                href={""}
-                className="btn btn-primary"
-            >
-                + Registrar novo empréstimo
-            </Link>
-            </div>
+"use client";
 
+import { useEffect, useState } from "react";
+import BarraNavegacao from "@/components/BarraNavegacao";
+import Link from "next/link";
 
-            <div className="container d-flex justify-content-between gap-2 mt-5">
+const API = "http://localhost:3001/api";
 
-            </div>
+export default function Funcionarios() {
+    const [funcionarios, setFuncionarios] = useState([]);
+    const [pesquisa, setPesquisa] = useState("");
+    const [carregando, setCarregando] = useState(true);
+    const [erro, setErro] = useState("");
 
-            {/* tabela */}
-            <div className="card border-0 rounded-3 mt-4 w-100 bg-transparent">
+    useEffect(() => {
+        async function carregarFuncionarios() {
+            try {
+                const resposta = await fetch(`${API}/funcionarios`);
 
-        {/* Título */}
-        <div className="card-header py-3 px-4 bg-transparent border-0">
-            <h5 className="mb-0">Empréstimos recentes</h5>
-        </div>
+                if (!resposta.ok) {
+                    throw new Error("Erro ao buscar funcionários.");
+                }
 
-        <div className="card-body p-0">
+                const resultado = await resposta.json();
 
-            {/* Filtros */}
-            <div className="px-4 pt-2 pb-4">
-            <div className="row g-2 align-items-end">
+                setFuncionarios(
+                    Array.isArray(resultado)
+                        ? resultado
+                        : resultado.dados ?? []
+                );
+            } catch (error) {
+                console.error("Erro ao carregar funcionários:", error);
+                setErro("Não foi possível carregar os funcionários.");
+            } finally {
+                setCarregando(false);
+            }
+        }
 
-                <div className="col-12 col-lg-4">
-                <label className="form-label">Pesquisar</label>
-                <input type="text" className="form-control" placeholder="ID, funcionário ou equipamento..."/>
-                </div>
+        carregarFuncionarios();
+    }, []);
 
-                <div className="col-12 col-md-6 col-lg-2">
-                <label className="form-label">Data inicial</label>
-                <input
-                    type="date"
-                    className="form-control"
-                />
-                </div>
+    const funcionariosFiltrados = funcionarios.filter((funcionario) =>
+        String(funcionario.nome ?? "")
+            .toLowerCase()
+            .includes(pesquisa.toLowerCase())
+    );
 
-                <div className="col-12 col-lg-4">
-                <label className="form-label">Status</label>
-                <select className="form-select" defaultValue="">
-                    <option value="">Todos os status</option>
-                    <option value="andamento">Em andamento</option>
-                    <option value="devolvido">Devolvido</option>
-                    <option value="atrasado">Atrasado</option>
-                </select>
-                </div>
+    async function excluirFuncionario(id) {
+        const confirmar = window.confirm(
+            "Tem certeza de que deseja excluir este funcionário?"
+        );
 
-            </div>
-            </div>
+        if (!confirmar) return;
 
-            {/* Tabela */}
-            <div className="table-responsive">
-            <table className="table ">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Data</th>
-                    <th>Funcionário</th>
-                    <th>Equipamento</th>
-                    <th>Quantidade</th>
-                    <th>Devolução prevista</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-                </thead>
+        try {
+            const resposta = await fetch(`${API}/funcionarios/${id}`, {
+                method: "DELETE",
+            });
 
-                <tbody>
-                    <tr>
-                        <td>
+            if (!resposta.ok) {
+                throw new Error("Erro ao excluir funcionário.");
+            }
+
+            setFuncionarios((anteriores) =>
+                anteriores.filter(
+                    (funcionario) => funcionario.id !== id
+                )
+            );
+        } catch (error) {
+            console.error("Erro ao excluir funcionário:", error);
+
+            alert(
+                "Não foi possível excluir o funcionário. Verifique se ele possui empréstimos registrados."
+            );
+        }
+    }
+
+    function obterStatus(funcionario) {
+        const status = String(
+            funcionario.status_funcionarios ?? "Ativo"
+        ).toLowerCase();
+
+        if (status === "ativo") {
+            return {
+                texto: "Ativo",
+                classe: "bg-success-subtle text-success",
+            };
+        }
+
+        return {
+            texto: funcionario.status_funcionarios ?? "Inativo",
+            classe: "bg-danger-subtle text-danger",
+        };
+    }
+
+    return (
+        <div className="d-flex min-vh-100 bg-light">
+            <BarraNavegacao />
+
+            <main className="flex-grow-1 p-4">
+                <header className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <div>
+                        <h2
+                            className="fw-bold mb-1"
+                            style={{ color: "#142D52" }}
+                        >
+                            Funcionários
+                        </h2>
+
+                        <p className="text-secondary mb-0">
+                            Gerencie os funcionários cadastrados no sistema.
+                        </p>
+                    </div>
+                </header>
+
+                <section className="card border-0 shadow-sm mb-4">
+                    <div className="card-body d-flex justify-content-between align-items-end flex-wrap gap-3">
+                        <div
+                            className="flex-grow-1"
+                            style={{ maxWidth: "550px" }}
+                        >
+                            <label
+                                htmlFor="pesquisa"
+                                className="form-label fw-semibold"
+                            >
+                                Pesquisar funcionário
+                            </label>
+
+                            <input
+                                id="pesquisa"
+                                type="search"
+                                className="form-control"
+                                placeholder="Digite o nome do funcionário..."
+                                value={pesquisa}
+                                onChange={(e) =>
+                                    setPesquisa(e.target.value)
+                                }
+                            />
+                        </div>
+
+                        <div className="text-secondary">
                             <Link
-                                href={`#`}
-                                className="btn btn-primary btn-sm">
-                                Editar
+                                href="/funcionarios/novo"
+                                className="btn btn-primary"
+                            >
+                                + Registrar novo funcionário
                             </Link>
-                        </td>
-                    </tr>
-        
-            </tbody>
+                        </div>
+                    </div>
+                </section>
 
-            </table>
-            </div>
+                <div className="mb-3 text-secondary">
+                    Total de funcionários cadastrados:{" "}
+                    <strong>{funcionariosFiltrados.length}</strong>
+                </div>
 
-            
+                {carregando && (
+                    <p className="text-secondary">
+                        Carregando funcionários...
+                    </p>
+                )}
 
+                {erro && (
+                    <div className="alert alert-danger">{erro}</div>
+                )}
+
+                {!carregando && !erro && (
+                    <div className="table-responsive">
+                        <table className="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Cargo</th>
+                                    <th>Setor</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {funcionariosFiltrados.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={6}
+                                            className="text-center text-secondary py-4"
+                                        >
+                                            Nenhum funcionário encontrado.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    funcionariosFiltrados.map(
+                                        (funcionario) => {
+                                            const status =
+                                                obterStatus(funcionario);
+
+                                            return (
+                                                <tr key={funcionario.id}>
+                                                    <td className="fw-semibold text-primary">
+                                                        {funcionario.id}
+                                                    </td>
+
+                                                    <td>
+                                                        {funcionario.nome}
+                                                    </td>
+
+                                                    <td>
+                                                        {funcionario.cargo || "-"}
+                                                    </td>
+
+                                                    <td>
+                                                        {funcionario.setor || "-"}
+                                                    </td>
+
+                                                    <td>
+                                                        <span
+                                                            className={`badge ${status.classe}`}
+                                                        >
+                                                            {status.texto}
+                                                        </span>
+                                                    </td>
+
+                                                    <td>
+                                                        <div className="d-flex gap-2">
+                                                            <Link
+                                                                href={`/funcionarios/editar/${funcionario.id}`}
+                                                                className="btn btn-primary btn-sm"
+                                                            >
+                                                                Editar
+                                                            </Link>
+
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-danger btn-sm"
+                                                                onClick={() =>
+                                                                    excluirFuncionario(
+                                                                        funcionario.id
+                                                                    )
+                                                                }
+                                                            >
+                                                                Excluir
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                    )
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </main>
         </div>
-        </div>
-        </main>
-        </div>
-    
-        
-        
-        </>
-    )
+    );
 }

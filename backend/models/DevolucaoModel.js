@@ -1,6 +1,4 @@
-
 export function criarDevolucaoModel({ pool }) {
-
     function validarData(data) {
         if (
             typeof data !== "string" ||
@@ -36,31 +34,29 @@ export function criarDevolucaoModel({ pool }) {
         }
 
         if (!Number.isInteger(quantidade) || quantidade <= 0) {
-            throw new Error("A quantidade devolvida deve ser maior que zero.");
+            throw new Error(
+                "A quantidade devolvida deve ser um número inteiro maior que zero."
+            );
         }
 
         if (!validarData(devolucao.data_devolucao)) {
             throw new Error("Informe uma data de devolução válida.");
         }
 
-        if (
-            typeof devolucao.condicao !== "string" ||
-            !devolucao.condicao.trim()
-        ) {
-            throw new Error("Informe a condição do equipamento.");
-        }
 
         return quantidade;
     }
 
+    // Lista as devoluções com os nomes do funcionário e equipamento.
     async function listarTodos() {
         const sql = `
             SELECT
-                d.*,
-                e.funcionario_id,
-                f.nome AS funcionario,
-                e.equipamento_id,
-                eq.nome AS equipamento
+                d.id,
+                d.emprestimo_id,
+                d.data_devolucao,
+                d.quantidade_devolvida,
+                f.nome AS funcionario_nome,
+                eq.nome AS equipamento_nome
             FROM devolucoes d
             INNER JOIN emprestimos e
                 ON e.id = d.emprestimo_id
@@ -76,15 +72,42 @@ export function criarDevolucaoModel({ pool }) {
     }
 
     async function buscarPorId(id) {
-        const [linhas] = await pool.query(
-            "SELECT * FROM devolucoes WHERE id = ?",
-            [id]
-        );
+        const sql = `
+            SELECT
+                d.*,
+                f.nome AS funcionario_nome,
+                eq.nome AS equipamento_nome
+            FROM devolucoes d
+            INNER JOIN emprestimos e
+                ON e.id = d.emprestimo_id
+            INNER JOIN funcionarios f
+                ON f.id = e.funcionario_id
+            INNER JOIN equipamentos eq
+                ON eq.id = e.equipamento_id
+            WHERE d.id = ?
+        `;
+
+        const [linhas] = await pool.execute(sql, [id]);
 
         return linhas.length === 0 ? null : linhas[0];
     }
 
-    // Atualiza o status de acordo com o total devolvido
+    async function bloquearEmprestimo(conexao, emprestimoId) {
+        const [linhas] = await conexao.execute(
+            `SELECT *
+             FROM emprestimos
+             WHERE id = ?
+             FOR UPDATE`,
+            [emprestimoId]
+        );
+
+        if (linhas.length === 0) {
+            throw new Error("Empréstimo não encontrado.");
+        }
+
+        return linhas[0];
+    }
+
     async function atualizarStatus(conexao, emprestimo) {
         const [somas] = await conexao.execute(
             `SELECT COALESCE(SUM(quantidade_devolvida), 0) AS total
@@ -102,14 +125,16 @@ export function criarDevolucaoModel({ pool }) {
             status = "Devolvido";
         } else {
             const hoje = new Date();
+
             const hojeFormatado = [
                 hoje.getFullYear(),
                 String(hoje.getMonth() + 1).padStart(2, "0"),
-                String(hoje.getDate()).padStart(2, "0")
+                String(hoje.getDate()).padStart(2, "0"),
             ].join("-");
 
             status =
-                formatarData(emprestimo.data_prevista_devolucao) < hojeFormatado
+                formatarData(emprestimo.data_prevista_devolucao) <
+                hojeFormatado
                     ? "Atrasado"
                     : "Em andamento";
         }
@@ -122,27 +147,10 @@ export function criarDevolucaoModel({ pool }) {
         return status;
     }
 
-    // Bloqueia o empréstimo para impedir alterações concorrentes
-    async function bloquearEmprestimo(conexao, emprestimoId) {
-        const [linhas] = await conexao.execute(
-            `SELECT *
-             FROM emprestimos
-             WHERE id = ?
-             FOR UPDATE`,
-            [emprestimoId]
-        );
-
-        if (linhas.length === 0) {
-            throw new Error("Empréstimo não encontrado.");
-        }
-
-        return linhas[0];
-    }
-
+    // Registra uma devolução, impedindo duplicidade por funcionário/equipamento.
     async function registrar(devolucao) {
         const quantidade = validarDados(devolucao);
         const emprestimoId = Number(devolucao.emprestimo_id);
-
         const conexao = await pool.getConnection();
 
         try {
@@ -152,6 +160,27 @@ export function criarDevolucaoModel({ pool }) {
                 conexao,
                 emprestimoId
             );
+
+            // NOVA VALIDAÇÃO: verifica devolução do mesmo funcionário/equipamento.
+            const [devolucaoExistente] = await conexao.execute(
+                `SELECT d.id
+                 FROM devolucoes d
+                 INNER JOIN emprestimos e
+                    ON e.id = d.emprestimo_id
+                 WHERE e.funcionario_id = ?
+                   AND e.equipamento_id = ?
+                 LIMIT 1`,
+                [
+                    emprestimo.funcionario_id,
+                    emprestimo.equipamento_id,
+                ]
+            );
+
+            if (devolucaoExistente.length > 0) {
+                throw new Error(
+                    `Já existe uma devolução para este funcionário e equipamento. Edite a devolução ${devolucaoExistente[0].id} em vez de cadastrar outra.`
+                );
+            }
 
             if (
                 devolucao.data_devolucao <
@@ -173,9 +202,41 @@ export function criarDevolucaoModel({ pool }) {
                 Number(emprestimo.qtd_emprestimo) -
                 Number(somas[0].total);
 
+            if (pendente <= 0) {
+                throw new Error(
+                    "Este empréstimo já teve todas as unidades devolvidas."
+                );
+            }
+
             if (quantidade > pendente) {
                 throw new Error(
                     `Quantidade excedida. Restam ${pendente} unidade(s) para devolver.`
+                );
+            }
+
+            const [equipamentos] = await conexao.execute(
+                `SELECT id, maximo_equipamentos, qtd_disponivel
+                 FROM equipamentos
+                 WHERE id = ?
+                 FOR UPDATE`,
+                [emprestimo.equipamento_id]
+            );
+
+            if (equipamentos.length === 0) {
+                throw new Error("Equipamento não encontrado.");
+            }
+
+            const equipamento = equipamentos[0];
+
+            const novoDisponivel =
+                Number(equipamento.qtd_disponivel) + quantidade;
+
+            if (
+                novoDisponivel >
+                Number(equipamento.maximo_equipamentos)
+            ) {
+                throw new Error(
+                    "A devolução ultrapassaria a quantidade máxima cadastrada no estoque."
                 );
             }
 
@@ -183,22 +244,20 @@ export function criarDevolucaoModel({ pool }) {
                 `INSERT INTO devolucoes (
                     emprestimo_id,
                     data_devolucao,
-                    quantidade_devolvida,
-                    condicao
+                    quantidade_devolvida
                 ) VALUES (?, ?, ?, ?)`,
                 [
                     emprestimoId,
                     devolucao.data_devolucao,
-                    quantidade,
-                    devolucao.condicao.trim()
+                    quantidade
                 ]
             );
 
             await conexao.execute(
                 `UPDATE equipamentos
-                 SET qtd_disponivel = qtd_disponivel + ?
+                 SET qtd_disponivel = ?
                  WHERE id = ?`,
-                [quantidade, emprestimo.equipamento_id]
+                [novoDisponivel, emprestimo.equipamento_id]
             );
 
             const status = await atualizarStatus(conexao, emprestimo);
@@ -210,10 +269,8 @@ export function criarDevolucaoModel({ pool }) {
                 emprestimo_id: emprestimoId,
                 data_devolucao: devolucao.data_devolucao,
                 quantidade_devolvida: quantidade,
-                condicao: devolucao.condicao.trim(),
-                status
+                status,
             };
-
         } catch (erro) {
             await conexao.rollback();
             throw erro;
@@ -222,8 +279,10 @@ export function criarDevolucaoModel({ pool }) {
         }
     }
 
+    // Editar continua permitido, inclusive para corrigir uma devolução existente.
     async function atualizar(id, devolucao) {
         const quantidadeNova = validarDados(devolucao);
+        const emprestimoNovoId = Number(devolucao.emprestimo_id);
         const conexao = await pool.getConnection();
 
         try {
@@ -241,19 +300,18 @@ export function criarDevolucaoModel({ pool }) {
 
             const atual = registros[0];
             const emprestimoAntigoId = Number(atual.emprestimo_id);
-            const emprestimoNovoId = Number(devolucao.emprestimo_id);
 
-            // Bloqueia os empréstimos em ordem de ID
-            const ids = [...new Set([
-                emprestimoAntigoId,
-                emprestimoNovoId
-            ])].sort((a, b) => a - b);
+            const idsEmprestimos = [
+                ...new Set([emprestimoAntigoId, emprestimoNovoId]),
+            ].sort((a, b) => a - b);
 
             const emprestimos = {};
 
-            for (const emprestimoId of ids) {
-                emprestimos[emprestimoId] =
-                    await bloquearEmprestimo(conexao, emprestimoId);
+            for (const emprestimoId of idsEmprestimos) {
+                emprestimos[emprestimoId] = await bloquearEmprestimo(
+                    conexao,
+                    emprestimoId
+                );
             }
 
             const antigo = emprestimos[emprestimoAntigoId];
@@ -268,8 +326,7 @@ export function criarDevolucaoModel({ pool }) {
                 );
             }
 
-            // Exclui a quantidade atual da soma para calcular
-            // corretamente a nova quantidade permitida
+            // Não considera a própria devolução ao calcular a quantidade restante.
             const [somas] = await conexao.execute(
                 `SELECT COALESCE(SUM(quantidade_devolvida), 0) AS total
                  FROM devolucoes
@@ -277,9 +334,8 @@ export function criarDevolucaoModel({ pool }) {
                 [emprestimoNovoId, id]
             );
 
-            const jaDevolvido = Number(somas[0].total);
             const pendente =
-                Number(novo.qtd_emprestimo) - jaDevolvido;
+                Number(novo.qtd_emprestimo) - Number(somas[0].total);
 
             if (quantidadeNova > pendente) {
                 throw new Error(
@@ -287,17 +343,19 @@ export function criarDevolucaoModel({ pool }) {
                 );
             }
 
-            // Bloquear equipamentos em ordem de ID
-            const equipamentoIds = [...new Set([
-                Number(atual.emprestimo_id),
-                Number(devolucao.emprestimo_id)
-            ].map(emprestimoId =>
-                Number(emprestimos[emprestimoId].equipamento_id)
-            ))].sort((a, b) => a - b);
+            // Bloqueia os equipamentos em ordem de ID.
+            const idsEquipamentos = [
+                ...new Set([
+                    Number(antigo.equipamento_id),
+                    Number(novo.equipamento_id),
+                ]),
+            ].sort((a, b) => a - b);
 
-            for (const equipamentoId of equipamentoIds) {
+            const equipamentos = {};
+
+            for (const equipamentoId of idsEquipamentos) {
                 const [linhas] = await conexao.execute(
-                    `SELECT id
+                    `SELECT id, maximo_equipamentos, qtd_disponivel
                      FROM equipamentos
                      WHERE id = ?
                      FOR UPDATE`,
@@ -307,37 +365,83 @@ export function criarDevolucaoModel({ pool }) {
                 if (linhas.length === 0) {
                     throw new Error("Equipamento não encontrado.");
                 }
+
+                equipamentos[equipamentoId] = linhas[0];
             }
 
-            // Reverter a devolução antiga
-            await conexao.execute(
-                `UPDATE equipamentos
-                 SET qtd_disponivel = qtd_disponivel - ?
-                 WHERE id = ?`,
-                [atual.quantidade_devolvida, antigo.equipamento_id]
-            );
+            // Calcula a disponibilidade final sem atualizar o estoque duas vezes.
+            const equipamentoAntigo =
+                equipamentos[Number(antigo.equipamento_id)];
 
-            // Aplicar a devolução corrigida
+            const equipamentoNovo =
+                equipamentos[Number(novo.equipamento_id)];
+
+            let disponivelAtualizado;
+
+            if (
+                Number(antigo.equipamento_id) ===
+                Number(novo.equipamento_id)
+            ) {
+                disponivelAtualizado =
+                    Number(equipamentoAntigo.qtd_disponivel) -
+                    Number(atual.quantidade_devolvida) +
+                    quantidadeNova;
+            } else {
+                const disponivelAntigo =
+                    Number(equipamentoAntigo.qtd_disponivel) -
+                    Number(atual.quantidade_devolvida);
+
+                if (disponivelAntigo < 0) {
+                    throw new Error(
+                        "Não é possível editar esta devolução porque o estoque ficaria negativo."
+                    );
+                }
+
+                await conexao.execute(
+                    `UPDATE equipamentos
+                     SET qtd_disponivel = ?
+                     WHERE id = ?`,
+                    [disponivelAntigo, antigo.equipamento_id]
+                );
+
+                disponivelAtualizado =
+                    Number(equipamentoNovo.qtd_disponivel) +
+                    quantidadeNova;
+            }
+
+            if (disponivelAtualizado < 0) {
+                throw new Error(
+                    "A edição deixaria o estoque negativo."
+                );
+            }
+
+            if (
+                disponivelAtualizado >
+                Number(equipamentoNovo.maximo_equipamentos)
+            ) {
+                throw new Error(
+                    "A edição ultrapassaria a quantidade máxima do estoque."
+                );
+            }
+
             await conexao.execute(
                 `UPDATE equipamentos
-                 SET qtd_disponivel = qtd_disponivel + ?
+                 SET qtd_disponivel = ?
                  WHERE id = ?`,
-                [quantidadeNova, novo.equipamento_id]
+                [disponivelAtualizado, novo.equipamento_id]
             );
 
             await conexao.execute(
                 `UPDATE devolucoes
                  SET emprestimo_id = ?,
                      data_devolucao = ?,
-                     quantidade_devolvida = ?,
-                     condicao = ?
+                     quantidade_devolvida = ?
                  WHERE id = ?`,
                 [
                     emprestimoNovoId,
                     devolucao.data_devolucao,
                     quantidadeNova,
-                    devolucao.condicao.trim(),
-                    id
+                    id,
                 ]
             );
 
@@ -345,14 +449,11 @@ export function criarDevolucaoModel({ pool }) {
 
             if (emprestimoAntigoId !== emprestimoNovoId) {
                 await atualizarStatus(conexao, novo);
-            } else {
-                await atualizarStatus(conexao, antigo);
             }
 
             await conexao.commit();
 
-            return buscarPorId(id);
-
+            return await buscarPorId(id);
         } catch (erro) {
             await conexao.rollback();
             throw erro;
@@ -385,7 +486,7 @@ export function criarDevolucaoModel({ pool }) {
             );
 
             const [equipamentos] = await conexao.execute(
-                `SELECT id
+                `SELECT id, qtd_disponivel
                  FROM equipamentos
                  WHERE id = ?
                  FOR UPDATE`,
@@ -396,15 +497,21 @@ export function criarDevolucaoModel({ pool }) {
                 throw new Error("Equipamento não encontrado.");
             }
 
-            // Desfazer a entrada no estoque causada pela devolução
+            const disponivel =
+                Number(equipamentos[0].qtd_disponivel) -
+                Number(devolucao.quantidade_devolvida);
+
+            if (disponivel < 0) {
+                throw new Error(
+                    "Não é possível excluir esta devolução porque o estoque ficaria negativo."
+                );
+            }
+
             await conexao.execute(
                 `UPDATE equipamentos
-                 SET qtd_disponivel = qtd_disponivel - ?
+                 SET qtd_disponivel = ?
                  WHERE id = ?`,
-                [
-                    devolucao.quantidade_devolvida,
-                    emprestimo.equipamento_id
-                ]
+                [disponivel, emprestimo.equipamento_id]
             );
 
             await conexao.execute(
@@ -417,7 +524,6 @@ export function criarDevolucaoModel({ pool }) {
             await conexao.commit();
 
             return true;
-
         } catch (erro) {
             await conexao.rollback();
             throw erro;
@@ -431,6 +537,6 @@ export function criarDevolucaoModel({ pool }) {
         buscarPorId,
         registrar,
         atualizar,
-        deletarPorId
+        deletarPorId,
     };
 }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -12,7 +11,8 @@ export default function NovoEquipamento() {
     const [formulario, setFormulario] = useState({
         nome: "",
         categoria: "",
-        qtd_equipamentos: ""
+        fabricante: "",
+        maximo_equipamentos: ""
     });
 
     const [erro, setErro] = useState("");
@@ -31,17 +31,17 @@ export default function NovoEquipamento() {
         e.preventDefault();
         setErro("");
 
-        // Validar somente os três campos do formulário
         if (
             !formulario.nome.trim() ||
             !formulario.categoria.trim() ||
-            formulario.qtd_equipamentos === ""
+            !formulario.fabricante.trim() ||
+            formulario.maximo_equipamentos === ""
         ) {
             setErro("Preencha todos os campos.");
             return;
         }
 
-        const quantidadeMaxima = Number(formulario.qtd_equipamentos);
+        const quantidadeMaxima = Number(formulario.maximo_equipamentos);
 
         if (!Number.isInteger(quantidadeMaxima) || quantidadeMaxima <= 0) {
             setErro("A quantidade máxima deve ser um número inteiro maior que zero.");
@@ -61,7 +61,8 @@ export default function NovoEquipamento() {
                     body: JSON.stringify({
                         nome: formulario.nome.trim(),
                         categoria: formulario.categoria.trim(),
-                        qtd_equipamentos: quantidadeMaxima,
+                        fabricante: formulario.fabricante.trim(),
+                        maximo_equipamentos: quantidadeMaxima,
                         qtd_disponivel: quantidadeMaxima
                     })
                 }
@@ -137,7 +138,7 @@ export default function NovoEquipamento() {
                                     />
                                 </div>
 
-                                <div className="col-12">
+                                <div className="col-md-6">
                                     <label
                                         htmlFor="categoria"
                                         className="form-label fw-semibold"
@@ -158,29 +159,50 @@ export default function NovoEquipamento() {
                                     />
                                 </div>
 
+                                <div className="col-md-6">
+                                    <label
+                                        htmlFor="fabricante"
+                                        className="form-label fw-semibold"
+                                    >
+                                        Fabricante
+                                    </label>
+
+                                    <input
+                                        id="fabricante"
+                                        name="fabricante"
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Ex.: 3M"
+                                        value={formulario.fabricante}
+                                        onChange={alterarCampo}
+                                        maxLength={100}
+                                        required
+                                    />
+                                </div>
+
                                 <div className="col-12">
                                     <label
-                                        htmlFor="qtd_equipamentos"
+                                        htmlFor="maximo_equipamentos"
                                         className="form-label fw-semibold"
                                     >
                                         Quantidade máxima
                                     </label>
 
                                     <input
-                                        id="qtd_equipamentos"
-                                        name="qtd_equipamentos"
+                                        id="maximo_equipamentos"
+                                        name="maximo_equipamentos"
                                         type="number"
                                         className="form-control"
                                         placeholder="Ex.: 100"
                                         min="1"
                                         step="1"
-                                        value={formulario.qtd_equipamentos}
+                                        value={formulario.maximo_equipamentos}
                                         onChange={alterarCampo}
                                         required
                                     />
 
                                     <div className="form-text">
-                                        A quantidade disponível começará igual à quantidade máxima.
+                                        Ao cadastrar, a quantidade disponível começará igual à quantidade máxima.
                                     </div>
                                 </div>
                             </div>

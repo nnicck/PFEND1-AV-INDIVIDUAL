@@ -33,7 +33,8 @@ export function criarEmprestimoService({ emprestimoModel }) {
             funcionario_id: emprestimo.funcionario_id,
             equipamento_id: emprestimo.equipamento_id,
             data_emprestimo: emprestimo.data_emprestimo,
-            data_prevista_devolucao: emprestimo.data_prevista_devolucao,
+            data_prevista_devolucao:
+                emprestimo.data_prevista_devolucao,
             qtd_emprestimo: emprestimo.qtd_emprestimo
         });
     }
@@ -57,12 +58,26 @@ export function criarEmprestimoService({ emprestimoModel }) {
             id
         });
 
+        const statusPermitidos = [
+            "Em andamento",
+            "Devolvido",
+            "Atrasado"
+        ];
+
+        const status = emprestimo.status ?? existente.status;
+
+        if (!statusPermitidos.includes(status)) {
+            throw new Error("Status inválido.");
+        }
+
         return emprestimoModel.atualizar(id, {
             funcionario_id: emprestimo.funcionario_id,
             equipamento_id: emprestimo.equipamento_id,
             data_emprestimo: emprestimo.data_emprestimo,
-            data_prevista_devolucao: emprestimo.data_prevista_devolucao,
-            qtd_emprestimo: emprestimo.qtd_emprestimo
+            data_prevista_devolucao:
+                emprestimo.data_prevista_devolucao,
+            qtd_emprestimo: emprestimo.qtd_emprestimo,
+            status
         });
     }
 

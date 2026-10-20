@@ -44,7 +44,6 @@ CREATE TABLE devolucoes (
     emprestimo_id INT NOT NULL,
     data_devolucao DATE NOT NULL,
     quantidade_devolvida INT NOT NULL,
-    condicao VARCHAR(50) NOT NULL,
 
     FOREIGN KEY (emprestimo_id)
         REFERENCES emprestimos(id),

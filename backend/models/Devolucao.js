@@ -5,7 +5,7 @@ export default class Devolucao {
         emprestimo_id,
         data_devolucao,
         quantidade_devolvida,
-        condicao
+
     }) {
         if (!Number.isInteger(id) || id <= 0) {
             throw new TypeError("O ID deve ser inteiro e positivo");
@@ -23,15 +23,12 @@ export default class Devolucao {
             throw new TypeError("A quantidade devolvida deve ser um inteiro positivo");
         }
 
-        if (typeof condicao !== "string" || condicao.trim() === "") {
-            throw new TypeError("A condição do equipamento é obrigatória");
-        }
 
         this.id = id;
         this.emprestimo_id = emprestimo_id;
         this.data_devolucao = data_devolucao;
         this.quantidade_devolvida = quantidade_devolvida;
-        this.condicao = condicao.trim();
+      
     }
 }
 

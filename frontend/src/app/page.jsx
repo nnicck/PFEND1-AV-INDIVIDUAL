@@ -12,6 +12,7 @@ export default function Home() {
     const [equipamentos, setEquipamentos] = useState([]);
     const [erro, setErro] = useState("");
     const [carregando, setCarregando] = useState(true);
+    const [excluindo, setExcluindo] = useState(null);
 
     const [pesquisa, setPesquisa] = useState("");
     const [statusFiltro, setStatusFiltro] = useState("");
@@ -26,7 +27,10 @@ export default function Home() {
     }
 
     function obterStatus(emprestimo) {
-        const status = emprestimo.status_atual ?? emprestimo.status ?? "Em andamento";
+        const status =
+            emprestimo.status_atual ??
+            emprestimo.status ??
+            "Em andamento";
 
         if (status === "Devolvido" || status === "Atrasado") {
             return status;
@@ -38,51 +42,105 @@ export default function Home() {
             String(new Date().getDate()).padStart(2, "0")
         ].join("-");
 
-        return normalizarData(emprestimo.data_prevista_devolucao) < hoje
-            && normalizarData(emprestimo.data_prevista_devolucao)
+        const devolucao = normalizarData(
+            emprestimo.data_prevista_devolucao
+        );
+
+        return devolucao && devolucao < hoje
             ? "Atrasado"
             : "Em andamento";
     }
 
-    useEffect(() => {
-        async function carregarDados() {
-            try {
-                setCarregando(true);
-                setErro("");
+    async function carregarDados() {
+        try {
+            setCarregando(true);
+            setErro("");
 
-                const respostas = await Promise.all([
-                    fetch(`${API}/emprestimos`),
-                    fetch(`${API}/equipamentos`)
-                ]);
+            const respostas = await Promise.all([
+                fetch(`${API}/emprestimos`),
+                fetch(`${API}/equipamentos`)
+            ]);
 
-                if (respostas.some((resposta) => !resposta.ok)) {
-                    throw new Error("Não foi possível carregar os dados.");
-                }
-
-                const resultados = await Promise.all(
-                    respostas.map((resposta) => resposta.json())
-                );
-
-                const listaEmprestimos = resultados[0].dados ?? resultados[0];
-                const listaEquipamentos = resultados[1].dados ?? resultados[1];
-
-                if (!Array.isArray(listaEmprestimos) ||
-                    !Array.isArray(listaEquipamentos)) {
-                    throw new Error("A API retornou dados em formato inválido.");
-                }
-
-                setEmprestimos(listaEmprestimos);
-                setEquipamentos(listaEquipamentos);
-            } catch (erro) {
-                console.error("Erro ao carregar dados:", erro);
-                setErro(erro.message || "Erro ao carregar os dados.");
-            } finally {
-                setCarregando(false);
+            if (respostas.some((resposta) => !resposta.ok)) {
+                throw new Error("Não foi possível carregar os dados.");
             }
-        }
 
+            const resultados = await Promise.all(
+                respostas.map((resposta) => resposta.json())
+            );
+
+            const listaEmprestimos =
+                resultados[0].dados ?? resultados[0];
+
+            const listaEquipamentos =
+                resultados[1].dados ?? resultados[1];
+
+            if (
+                !Array.isArray(listaEmprestimos) ||
+                !Array.isArray(listaEquipamentos)
+            ) {
+                throw new Error(
+                    "A API retornou dados em formato inválido."
+                );
+            }
+
+            setEmprestimos(listaEmprestimos);
+            setEquipamentos(listaEquipamentos);
+        } catch (erro) {
+            console.error("Erro ao carregar dados:", erro);
+            setErro(erro.message || "Erro ao carregar os dados.");
+        } finally {
+            setCarregando(false);
+        }
+    }
+
+    useEffect(() => {
         carregarDados();
     }, []);
+
+    async function excluirEmprestimo(id) {
+        const confirmar = window.confirm(
+            `Tem certeza que deseja excluir o empréstimo ${id}?`
+        );
+
+        if (!confirmar) return;
+
+        setExcluindo(id);
+        setErro("");
+
+        try {
+            const resposta = await fetch(
+                `${API}/emprestimos/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            if (!resposta.ok) {
+                const resultado = await resposta.json().catch(() => ({}));
+
+                throw new Error(
+                    resultado.mensagem ||
+                    resultado.erro ||
+                    "Não foi possível excluir o empréstimo."
+                );
+            }
+
+            setEmprestimos((listaAtual) =>
+                listaAtual.filter(
+                    (emprestimo) =>
+                        Number(
+                            emprestimo.emprestimo_id ?? emprestimo.id
+                        ) !== Number(id)
+                )
+            );
+        } catch (erro) {
+            console.error("Erro ao excluir empréstimo:", erro);
+            setErro(erro.message || "Erro ao excluir empréstimo.");
+        } finally {
+            setExcluindo(null);
+        }
+    }
 
     const resumo = useMemo(() => ({
         emprestimosAtivos: emprestimos.filter((e) =>
@@ -94,30 +152,46 @@ export default function Home() {
         ).length,
 
         totalEpis: equipamentos.reduce(
-            (total, e) => total + (Number(e.maximo_equipamentos) || 0), 0
+            (total, e) =>
+                total + (Number(e.maximo_equipamentos) || 0),
+            0
         ),
 
         disponivel: equipamentos.reduce(
-            (total, e) => total + (Number(e.qtd_disponivel) || 0), 0
+            (total, e) =>
+                total + (Number(e.qtd_disponivel) || 0),
+            0
         )
     }), [emprestimos, equipamentos]);
 
     const emprestimosFiltrados = useMemo(() => {
         const termo = pesquisa.trim().toLowerCase();
 
-        return emprestimos.filter((e) => {
-            const id = String(e.emprestimo_id ?? e.id ?? "");
-            const funcionario = String(e.funcionario_nome ?? "");
-            const equipamento = String(e.equipamento_nome ?? "");
+        return emprestimos
+            .filter((e) => {
+                const id = String(e.emprestimo_id ?? e.id ?? "");
+                const funcionario = String(e.funcionario_nome ?? "");
+                const equipamento = String(e.equipamento_nome ?? "");
 
-            const correspondePesquisa = [id, funcionario, equipamento]
-                .some((valor) => valor.toLowerCase().includes(termo));
+                const correspondePesquisa = [
+                    id,
+                    funcionario,
+                    equipamento
+                ].some((valor) =>
+                    valor.toLowerCase().includes(termo)
+                );
 
-            const correspondeStatus =
-                !statusFiltro || obterStatus(e) === statusFiltro;
+                const correspondeStatus =
+                    !statusFiltro || obterStatus(e) === statusFiltro;
 
-            return correspondePesquisa && correspondeStatus;
-        });
+                return correspondePesquisa && correspondeStatus;
+            })
+            .sort((a, b) => {
+                const idA = Number(a.emprestimo_id ?? a.id);
+                const idB = Number(b.emprestimo_id ?? b.id);
+
+                return idA - idB;
+            });
     }, [emprestimos, pesquisa, statusFiltro]);
 
     function limparFiltros() {
@@ -139,18 +213,23 @@ export default function Home() {
                 <div className="container-fluid px-4 mt-5">
                     <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
                         <div>
-                            <h2 className="text-black">Olá! Seja bem-vindo!</h2>
+                            <h2 className="text-black">
+                                Olá! Seja bem-vindo!
+                            </h2>
+
                             <h5 className="text-secondary">
                                 Aqui está um resumo dos EPIs e da movimentação do sistema.
                             </h5>
                         </div>
 
-                        <Link href="/emprestimos/novo" className="btn btn-primary">
+                        <Link
+                            href="/emprestimos/novo"
+                            className="btn btn-primary"
+                        >
                             + Registrar novo empréstimo
                         </Link>
                     </div>
 
-                    {/* Cards centralizados */}
                     <div className="row justify-content-center g-3 mt-4">
                         <div className="col-12 col-sm-6 col-xl-4">
                             <CardsResumo
@@ -169,37 +248,55 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* Tabela */}
                     <div className="card border-0 bg-transparent mt-4 mb-5">
                         <div className="card-header bg-transparent border-0 px-0 py-3">
-                            <h5 className="mb-0">Empréstimos recentes</h5>
+                            <h5 className="mb-0">
+                                Empréstimos recentes
+                            </h5>
                         </div>
 
                         <div className="card-body p-0">
-                            {/* Filtros */}
                             <div className="row g-3 align-items-end py-3">
                                 <div className="col-12 col-lg-6">
-                                    <label className="form-label">Pesquisar</label>
+                                    <label className="form-label">
+                                        Pesquisar
+                                    </label>
+
                                     <input
                                         type="text"
                                         className="form-control"
                                         placeholder="ID, funcionário ou equipamento..."
                                         value={pesquisa}
-                                        onChange={(e) => setPesquisa(e.target.value)}
+                                        onChange={(e) =>
+                                            setPesquisa(e.target.value)
+                                        }
                                     />
                                 </div>
 
                                 <div className="col-12 col-md-7 col-lg-4">
-                                    <label className="form-label">Status</label>
+                                    <label className="form-label">
+                                        Status
+                                    </label>
+
                                     <select
                                         className="form-select"
                                         value={statusFiltro}
-                                        onChange={(e) => setStatusFiltro(e.target.value)}
+                                        onChange={(e) =>
+                                            setStatusFiltro(e.target.value)
+                                        }
                                     >
-                                        <option value="">Todos os status</option>
-                                        <option value="Em andamento">Em andamento</option>
-                                        <option value="Devolvido">Devolvido</option>
-                                        <option value="Atrasado">Atrasado</option>
+                                        <option value="">
+                                            Todos os status
+                                        </option>
+                                        <option value="Em andamento">
+                                            Em andamento
+                                        </option>
+                                        <option value="Devolvido">
+                                            Devolvido
+                                        </option>
+                                        <option value="Atrasado">
+                                            Atrasado
+                                        </option>
                                     </select>
                                 </div>
 
@@ -214,7 +311,11 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            {erro && <div className="alert alert-danger">{erro}</div>}
+                            {erro && (
+                                <div className="alert alert-danger">
+                                    {erro}
+                                </div>
+                            )}
 
                             {carregando && (
                                 <p className="text-secondary py-3">
@@ -240,29 +341,67 @@ export default function Home() {
                                     <tbody>
                                         {!carregando && !erro &&
                                             emprestimosFiltrados.map((e) => {
-                                                const id = e.emprestimo_id ?? e.id;
+                                                const id =
+                                                    e.emprestimo_id ?? e.id;
+
                                                 const status = obterStatus(e);
 
                                                 return (
                                                     <tr key={id}>
-                                                        <td className="text-primary">{id}</td>
-                                                        <td>{formatarData(e.data_emprestimo)}</td>
-                                                        <td>{e.funcionario_nome ?? "-"}</td>
-                                                        <td>{e.equipamento_nome ?? "-"}</td>
-                                                        <td>{e.qtd_emprestimo ?? "-"}</td>
-                                                        <td>{formatarData(e.data_prevista_devolucao)}</td>
+                                                        <td className="text-primary">
+                                                            {id}
+                                                        </td>
+
                                                         <td>
-                                                            <span className={`badge ${classeStatus(status)}`}>
+                                                            {formatarData(e.data_emprestimo)}
+                                                        </td>
+
+                                                        <td>
+                                                            {e.funcionario_nome ?? "-"}
+                                                        </td>
+
+                                                        <td>
+                                                            {e.equipamento_nome ?? "-"}
+                                                        </td>
+
+                                                        <td>
+                                                            {e.qtd_emprestimo ?? "-"}
+                                                        </td>
+
+                                                        <td>
+                                                            {formatarData(e.data_prevista_devolucao)}
+                                                        </td>
+
+                                                        <td>
+                                                            <span
+                                                                className={`badge ${classeStatus(status)}`}
+                                                            >
                                                                 {status}
                                                             </span>
                                                         </td>
+
                                                         <td>
-                                                            <Link
-                                                                href={`/emprestimos/editar/${id}`}
-                                                                className="btn btn-primary btn-sm"
-                                                            >
-                                                                Editar
-                                                            </Link>
+                                                            <div className="d-flex gap-2">
+                                                                <Link
+                                                                    href={`/emprestimos/editar/${id}`}
+                                                                    className="btn btn-primary btn-sm"
+                                                                >
+                                                                    Editar
+                                                                </Link>
+
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-danger btn-sm"
+                                                                    disabled={excluindo === id}
+                                                                    onClick={() =>
+                                                                        excluirEmprestimo(id)
+                                                                    }
+                                                                >
+                                                                    {excluindo === id
+                                                                        ? "Excluindo..."
+                                                                        : "Excluir"}
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
@@ -271,7 +410,10 @@ export default function Home() {
                                         {!carregando && !erro &&
                                             emprestimosFiltrados.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={8} className="text-center text-secondary py-4">
+                                                    <td
+                                                        colSpan={8}
+                                                        className="text-center text-secondary py-4"
+                                                    >
                                                         Nenhum empréstimo encontrado.
                                                     </td>
                                                 </tr>
@@ -282,7 +424,8 @@ export default function Home() {
 
                             {!carregando && !erro && (
                                 <p className="text-secondary small mt-2">
-                                    Exibindo {emprestimosFiltrados.length} de {emprestimos.length} empréstimos.
+                                    Exibindo {emprestimosFiltrados.length} de{" "}
+                                    {emprestimos.length} empréstimos.
                                 </p>
                             )}
                         </div>

@@ -31,8 +31,7 @@ export function criarDevolucaoService({ devolucaoModel }) {
         return devolucaoModel.registrar({
             emprestimo_id: devolucao.emprestimo_id,
             data_devolucao: devolucao.data_devolucao,
-            quantidade_devolvida: devolucao.quantidade_devolvida,
-            condicao: devolucao.condicao
+            quantidade_devolvida: devolucao.quantidade_devolvida
         });
     }
 
@@ -58,8 +57,7 @@ export function criarDevolucaoService({ devolucaoModel }) {
         return devolucaoModel.atualizar(id, {
             emprestimo_id: devolucao.emprestimo_id,
             data_devolucao: devolucao.data_devolucao,
-            quantidade_devolvida: devolucao.quantidade_devolvida,
-            condicao: devolucao.condicao
+            quantidade_devolvida: devolucao.quantidade_devolvida
         });
     }
 
