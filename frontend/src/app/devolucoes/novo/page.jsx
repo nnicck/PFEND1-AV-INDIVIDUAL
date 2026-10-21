@@ -65,11 +65,17 @@ useEffect(() => {
                 ]);
 
             if (!respostaEmprestimos.ok) {
-                throw new Error("Não foi possível carregar os empréstimos.");
+                throw new Error(
+                    respostaEmprestimos.mensagem || 
+                    respostaEmprestimos.erro ||
+                    "Não foi possível carregar os empréstimos.");
             }
 
             if (!respostaDevolucoes.ok) {
-                throw new Error("Não foi possível carregar as devoluções.");
+                throw new Error(
+                    respostaDevolucoes.mensagem || 
+                    respostaDevolucoes.erro || 
+                    "Não foi possível carregar as devoluções.");
             }
 
             const dadosEmprestimos = obterLista(
@@ -79,6 +85,7 @@ useEffect(() => {
             const dadosDevolucoes = obterLista(
                 await respostaDevolucoes.json()
             );
+
 
             // Calcula quantos equipamentos ainda faltam ser devolvidos.
             const pendentes = dadosEmprestimos

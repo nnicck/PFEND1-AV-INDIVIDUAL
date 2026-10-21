@@ -192,12 +192,6 @@ return (
         <main className="flex-grow-1 p-4">
             {/* Cabeçalho no mesmo padrão da edição de funcionários. */}
             <div className="mb-4">
-                <Link
-                    href="/devolucoes"
-                    className="text-decoration-none"
-                >
-                    ← Voltar para devoluções
-                </Link>
 
                 <h2 className="fw-bold mt-3 mb-1 text-primary">
                     Editar devolução

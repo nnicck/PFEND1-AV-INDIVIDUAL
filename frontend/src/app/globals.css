@@ -48,3 +48,54 @@ body{
   padding: 5px 30px;
   vertical-align: middle;
 }
+
+/*Loading Spinner*/
+
+.caixa{
+  width: 70vw;
+  margin: 300px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 100px;
+  gap: 20px;
+  flex-direction: column;
+}
+
+.engrenagem{
+  width: 500px;
+}
+
+.txt-loading{
+  font-weight: 700;
+}
+
+/*404 página*/
+
+.caixa-dois{
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(13, 110, 253, 1);
+  gap: 100px;
+}
+
+.txt-erro{
+  font-weight: 800;
+  font-size: 50px;
+}
+
+.btn-voltar{
+  padding: 10px 20px;
+  background-color: #f8f9fb;
+  border: 1px solid rgb(62, 62, 62);
+  border-radius: 20px;
+  font-weight: 500;
+}

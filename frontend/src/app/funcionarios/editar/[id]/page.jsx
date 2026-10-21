@@ -130,13 +130,6 @@ export default function EditarFuncionario() {
 
             <main className="flex-grow-1 p-4">
                 <div className="mb-4">
-                    <Link
-                        href="/funcionarios"
-                        className="text-decoration-none"
-                    >
-                        ← Voltar para funcionários
-                    </Link>
-
                     <h2
                         className="fw-bold mt-3 mb-1"
                         style={{ color: "#142D52" }}
