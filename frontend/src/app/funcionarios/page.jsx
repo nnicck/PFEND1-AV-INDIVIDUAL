@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BarraNavegacao from "@/components/BarraNavegacao";
 import Link from "next/link";
+import BarraNavegacao from "@/components/BarraNavegacao";
+import TabelaFuncionarios from "@/components/TabelaFuncionarios";
+import ModalConfirmacao from "@/components/ModalConfirmacao";
 
 const API = "http://localhost:3001/api";
 
@@ -12,6 +14,14 @@ export default function Funcionarios() {
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState("");
 
+    // Controla o modal de confirmação da exclusão.
+    const [modalAberto, setModalAberto] = useState(false);
+    const [funcionarioSelecionado, setFuncionarioSelecionado] =
+        useState(null);
+    const [excluindo, setExcluindo] = useState(false);
+    const [erroModal, setErroModal] = useState("");
+
+    // Busca os funcionários cadastrados na API.
     useEffect(() => {
         async function carregarFuncionarios() {
             try {
@@ -39,42 +49,14 @@ export default function Funcionarios() {
         carregarFuncionarios();
     }, []);
 
+    // Filtra os funcionários pelo nome digitado.
     const funcionariosFiltrados = funcionarios.filter((funcionario) =>
         String(funcionario.nome ?? "")
             .toLowerCase()
             .includes(pesquisa.toLowerCase())
     );
 
-    async function excluirFuncionario(id) {
-        const confirmar = window.confirm(
-            "Tem certeza de que deseja excluir este funcionário?"
-        );
-
-        if (!confirmar) return;
-
-        try {
-            const resposta = await fetch(`${API}/funcionarios/${id}`, {
-                method: "DELETE",
-            });
-
-            if (!resposta.ok) {
-                throw new Error("Erro ao excluir funcionário.");
-            }
-
-            setFuncionarios((anteriores) =>
-                anteriores.filter(
-                    (funcionario) => funcionario.id !== id
-                )
-            );
-        } catch (error) {
-            console.error("Erro ao excluir funcionário:", error);
-
-            alert(
-                "Não foi possível excluir o funcionário. Verifique se ele possui empréstimos registrados."
-            );
-        }
-    }
-
+    // Define a aparência do status de cada funcionário.
     function obterStatus(funcionario) {
         const status = String(
             funcionario.status_funcionarios ?? "Ativo"
@@ -93,11 +75,68 @@ export default function Funcionarios() {
         };
     }
 
+    // Abre o modal para confirmar a exclusão do funcionário selecionado.
+    function abrirModal(funcionario) {
+        setFuncionarioSelecionado(funcionario);
+        setErroModal("");
+        setModalAberto(true);
+    }
+
+    // Fecha o modal e limpa os dados da seleção.
+    function fecharModal() {
+        if (excluindo) return;
+
+        setModalAberto(false);
+        setFuncionarioSelecionado(null);
+        setErroModal("");
+    }
+
+    // Exclui o funcionário após a confirmação no modal.
+    async function excluirFuncionario() {
+        if (!funcionarioSelecionado || excluindo) return;
+
+        try {
+            setExcluindo(true);
+            setErroModal("");
+
+            const resposta = await fetch(
+                `${API}/funcionarios/${funcionarioSelecionado.id}`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+            if (!resposta.ok) {
+                throw new Error(
+                    "Não foi possível excluir o funcionário. Verifique se ele possui empréstimos registrados."
+                );
+            }
+
+            // Atualiza a tabela sem precisar buscar os dados novamente.
+            setFuncionarios((anteriores) =>
+                anteriores.filter(
+                    (funcionario) =>
+                        String(funcionario.id) !==
+                        String(funcionarioSelecionado.id)
+                )
+            );
+
+            setModalAberto(false);
+            setFuncionarioSelecionado(null);
+        } catch (error) {
+            console.error("Erro ao excluir funcionário:", error);
+            setErroModal(error.message || "Erro ao excluir funcionário.");
+        } finally {
+            setExcluindo(false);
+        }
+    }
+
     return (
         <div className="d-flex min-vh-100 bg-light">
             <BarraNavegacao />
 
             <main className="flex-grow-1 p-4">
+                {/* Cabeçalho da página */}
                 <header className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                     <div>
                         <h2
@@ -113,6 +152,7 @@ export default function Funcionarios() {
                     </div>
                 </header>
 
+                {/* Pesquisa e botão para cadastrar funcionário */}
                 <section className="card border-0 shadow-sm mb-4">
                     <div className="card-body d-flex justify-content-between align-items-end flex-wrap gap-3">
                         <div
@@ -132,28 +172,28 @@ export default function Funcionarios() {
                                 className="form-control"
                                 placeholder="Digite o nome do funcionário..."
                                 value={pesquisa}
-                                onChange={(e) =>
-                                    setPesquisa(e.target.value)
+                                onChange={(evento) =>
+                                    setPesquisa(evento.target.value)
                                 }
                             />
                         </div>
 
-                        <div className="text-secondary">
-                            <Link
-                                href="/funcionarios/novo"
-                                className="btn btn-primary"
-                            >
-                                + Registrar novo funcionário
-                            </Link>
-                        </div>
+                        <Link
+                            href="/funcionarios/novo"
+                            className="btn btn-primary"
+                        >
+                            + Registrar novo funcionário
+                        </Link>
                     </div>
                 </section>
 
+                {/* Quantidade de funcionários encontrados */}
                 <div className="mb-3 text-secondary">
                     Total de funcionários cadastrados:{" "}
                     <strong>{funcionariosFiltrados.length}</strong>
                 </div>
 
+                {/* Estados de carregamento e erro */}
                 {carregando && (
                     <p className="text-secondary">
                         Carregando funcionários...
@@ -164,93 +204,31 @@ export default function Funcionarios() {
                     <div className="alert alert-danger">{erro}</div>
                 )}
 
+                {/* Tabela reutilizável de funcionários */}
                 {!carregando && !erro && (
-                    <div className="table-responsive">
-                        <table className="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nome</th>
-                                    <th>Cargo</th>
-                                    <th>Setor</th>
-                                    <th>Status</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {funcionariosFiltrados.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={6}
-                                            className="text-center text-secondary py-4"
-                                        >
-                                            Nenhum funcionário encontrado.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    funcionariosFiltrados.map(
-                                        (funcionario) => {
-                                            const status =
-                                                obterStatus(funcionario);
-
-                                            return (
-                                                <tr key={funcionario.id}>
-                                                    <td className="fw-semibold text-primary">
-                                                        {funcionario.id}
-                                                    </td>
-
-                                                    <td>
-                                                        {funcionario.nome}
-                                                    </td>
-
-                                                    <td>
-                                                        {funcionario.cargo || "-"}
-                                                    </td>
-
-                                                    <td>
-                                                        {funcionario.setor || "-"}
-                                                    </td>
-
-                                                    <td>
-                                                        <span
-                                                            className={`badge ${status.classe}`}
-                                                        >
-                                                            {status.texto}
-                                                        </span>
-                                                    </td>
-
-                                                    <td>
-                                                        <div className="d-flex gap-2">
-                                                            <Link
-                                                                href={`/funcionarios/editar/${funcionario.id}`}
-                                                                className="btn btn-primary btn-sm"
-                                                            >
-                                                                Editar
-                                                            </Link>
-
-                                                            <button
-                                                                type="button"
-                                                                className="btn btn-danger btn-sm"
-                                                                onClick={() =>
-                                                                    excluirFuncionario(
-                                                                        funcionario.id
-                                                                    )
-                                                                }
-                                                            >
-                                                                Excluir
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        }
-                                    )
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                    <TabelaFuncionarios
+                        funcionarios={funcionariosFiltrados}
+                        obterStatus={obterStatus}
+                        onExcluir={abrirModal}
+                    />
                 )}
+
+                {/* Modal reutilizável para confirmar a exclusão */}
+                <ModalConfirmacao
+                    aberto={modalAberto}
+                    titulo="Excluir funcionário"
+                    mensagem={
+                        funcionarioSelecionado
+                            ? `Tem certeza de que deseja excluir o funcionário ${funcionarioSelecionado.nome}?`
+                            : "Tem certeza de que deseja excluir este funcionário?"
+                    }
+                    erro={erroModal}
+                    carregando={excluindo}
+                    textoConfirmar="Excluir"
+                    textoCancelar="Cancelar"
+                    onConfirmar={excluirFuncionario}
+                    onFechar={fecharModal}
+                />
             </main>
         </div>
     );

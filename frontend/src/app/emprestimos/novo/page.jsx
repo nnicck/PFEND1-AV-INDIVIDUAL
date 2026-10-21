@@ -264,21 +264,7 @@ export default function NovoEmprestimo() {
                     style={{ maxWidth: "1100px" }}
                 >
                     <div className="mb-4">
-                        <Link
-                            href="/"
-                            className="text-decoration-none"
-                            style={{ color: "#142D52" }}
-                        >
-                            ← Voltar para empréstimos
-                        </Link>
-
-                        <h1
-                            className="fw-bold mt-3 mb-2"
-                            style={{
-                                color: "#142D52",
-                                fontSize: "1.8rem",
-                            }}
-                        >
+                        <h1 className="fw-bold mt-3 mb-2 text-black">
                             Novo empréstimo
                         </h1>
 

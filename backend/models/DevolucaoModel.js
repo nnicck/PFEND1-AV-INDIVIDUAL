@@ -241,17 +241,17 @@ export function criarDevolucaoModel({ pool }) {
             }
 
             const [resultado] = await conexao.execute(
-                `INSERT INTO devolucoes (
-                    emprestimo_id,
-                    data_devolucao,
-                    quantidade_devolvida
-                ) VALUES (?, ?, ?, ?)`,
-                [
-                    emprestimoId,
-                    devolucao.data_devolucao,
-                    quantidade
-                ]
-            );
+            `INSERT INTO devolucoes (
+                emprestimo_id,
+                data_devolucao,
+                quantidade_devolvida
+            ) VALUES (?, ?, ?)`,
+            [
+                emprestimoId,
+                devolucao.data_devolucao,
+                quantidade
+            ]
+        );
 
             await conexao.execute(
                 `UPDATE equipamentos

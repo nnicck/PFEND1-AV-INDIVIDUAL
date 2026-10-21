@@ -15,7 +15,6 @@ export default function EditarEquipamento() {
     const [formulario, setFormulario] = useState({
         nome: "",
         categoria: "",
-        fabricante: "",
         maximo_equipamentos: "",
         qtd_disponivel: ""
     });
@@ -30,7 +29,9 @@ export default function EditarEquipamento() {
                 const resposta = await fetch(`${API}/equipamentos/${id}`);
 
                 if (!resposta.ok) {
-                    throw new Error("Não foi possível carregar o equipamento.");
+                    throw new Error(
+                        "Não foi possível carregar o equipamento."
+                    );
                 }
 
                 const resultado = await resposta.json();
@@ -39,7 +40,6 @@ export default function EditarEquipamento() {
                 setFormulario({
                     nome: equipamento.nome ?? "",
                     categoria: equipamento.categoria ?? "",
-                    fabricante: equipamento.fabricante ?? "",
                     maximo_equipamentos: String(
                         equipamento.maximo_equipamentos ?? ""
                     ),
@@ -81,7 +81,6 @@ export default function EditarEquipamento() {
         if (
             !formulario.nome.trim() ||
             !formulario.categoria.trim() ||
-            !formulario.fabricante.trim() ||
             formulario.maximo_equipamentos === ""
         ) {
             setErro("Preencha todos os campos.");
@@ -89,7 +88,9 @@ export default function EditarEquipamento() {
         }
 
         if (!Number.isInteger(total) || total < 0) {
-            setErro("A quantidade máxima deve ser um número inteiro maior ou igual a zero.");
+            setErro(
+                "A quantidade máxima deve ser um número inteiro maior ou igual a zero."
+            );
             return;
         }
 
@@ -98,7 +99,9 @@ export default function EditarEquipamento() {
             disponivel < 0 ||
             disponivel > total
         ) {
-            setErro("A quantidade disponível deve estar entre zero e a quantidade máxima.");
+            setErro(
+                "A quantidade disponível deve estar entre zero e a quantidade máxima."
+            );
             return;
         }
 
@@ -113,7 +116,6 @@ export default function EditarEquipamento() {
                 body: JSON.stringify({
                     nome: formulario.nome.trim(),
                     categoria: formulario.categoria.trim(),
-                    fabricante: formulario.fabricante.trim(),
                     maximo_equipamentos: total,
                     qtd_disponivel: disponivel
                 })
@@ -145,17 +147,8 @@ export default function EditarEquipamento() {
 
             <main className="flex-grow-1 p-4">
                 <div className="mb-4">
-                    <Link
-                        href="/equipamentos"
-                        className="text-decoration-none"
-                    >
-                        ← Voltar para equipamentos
-                    </Link>
 
-                    <h2
-                        className="fw-bold mt-3 mb-1"
-                        style={{ color: "#142D52" }}
-                    >
+                    <h2 className="fw-bold mt-3 mb-1 text-black" >
                         Editar equipamento
                     </h2>
 
@@ -215,26 +208,6 @@ export default function EditarEquipamento() {
 
                                     <div className="col-md-6">
                                         <label
-                                            htmlFor="fabricante"
-                                            className="form-label fw-semibold"
-                                        >
-                                            Fabricante
-                                        </label>
-
-                                        <input
-                                            id="fabricante"
-                                            name="fabricante"
-                                            type="text"
-                                            className="form-control"
-                                            value={formulario.fabricante}
-                                            onChange={alterarCampo}
-                                            maxLength={100}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="col-md-6">
-                                        <label
                                             htmlFor="maximo_equipamentos"
                                             className="form-label fw-semibold"
                                         >
@@ -278,7 +251,6 @@ export default function EditarEquipamento() {
                                             onChange={alterarCampo}
                                             readOnly
                                         />
-
                                     </div>
                                 </div>
 
